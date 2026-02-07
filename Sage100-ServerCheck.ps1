@@ -3,408 +3,226 @@
     Sage 100 Server Check & Configuration Tool
     
 .DESCRIPTION
-    Automatisierte Prüfung und Dokumentation von Sage 100 Serverumgebungen.
-    Prüft Systemvoraussetzungen, sammelt Informationen und generiert Kundenstammblätter.
+    Automatisches PowerShell-Tool zur Validierung und Konfiguration von Sage 100 Server-Installationen.
+    Prüft Systemvoraussetzungen, Ports, SQL Server und erstellt Dokumentation.
     
-.PARAMETER FullCheck
-    Führt alle Prüfungen durch (System, SQL, Netzwerk, Software)
+.PARAMETER Mode
+    Betriebsmodus:
+    - Check: Nur Systemprüfung (Standard)
+    - Fix: Prüfung + Interaktive Behebung
+    - Export: Markdown-Export erstellen
+    - Full: Alles (Check + Fix + Export)
+    - WorkLog: Arbeitsprotokoll verwalten
     
-.PARAMETER CheckRequirements
-    Prüft nur Systemvoraussetzungen gegen Sage 100 Requirements
+.PARAMETER OutputPath
+    Pfad für Markdown-Export (Standard: .\reports\)
     
-.PARAMETER GenerateReport
-    Generiert Kundenstammblatt im Markdown-Format
-    
-.PARAMETER CustomerName
-    Kundenname für die Dokumentation
-    
-.PARAMETER AddWorkLog
-    Fügt einen Eintrag zur Terminhistorie hinzu
-    
-.PARAMETER Technician
-    Name des Technikers für Arbeitsprotokoll
-    
-.PARAMETER Description
-    Beschreibung der durchgeführten Arbeiten
-    
-.PARAMETER Duration
-    Dauer der Arbeiten in Minuten
+.PARAMETER Silent
+    Keine interaktiven Prompts (nur für Automation)
     
 .EXAMPLE
-    .\Sage100-ServerCheck.ps1 -FullCheck
+    .\Sage100-ServerCheck.ps1 -Mode Check
     
 .EXAMPLE
-    .\Sage100-ServerCheck.ps1 -GenerateReport -CustomerName "Musterfirma GmbH"
-    
-.EXAMPLE
-    .\Sage100-ServerCheck.ps1 -AddWorkLog -Technician "Max Mustermann" -Description "Installation" -Duration 120
+    .\Sage100-ServerCheck.ps1 -Mode Full -OutputPath "C:\Reports\Kunde_XYZ.md"
     
 .NOTES
-    Version: 1.0.0
-    Author: Sage 100 Partner Team
-    Requires: PowerShell 5.1+, Administrator Rights (für System-Checks)
+    Version: 1.0
+    Author: M. Jung / Aktuellis
+    
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(ParameterSetName='Check')]
-    [switch]$FullCheck,
+    [Parameter()]
+    [ValidateSet('Check', 'Fix', 'Export', 'Full', 'WorkLog')]
+    [string]$Mode = 'Check',
     
-    [Parameter(ParameterSetName='Check')]
-    [switch]$CheckRequirements,
+    [Parameter()]
+    [string]$OutputPath = ".\reports\",
     
-    [Parameter(ParameterSetName='Report')]
-    [switch]$GenerateReport,
-    
-    [Parameter(ParameterSetName='Report')]
-    [string]$CustomerName,
-    
-    [Parameter(ParameterSetName='WorkLog')]
-    [switch]$AddWorkLog,
-    
-    [Parameter(ParameterSetName='WorkLog')]
-    [string]$Technician,
-    
-    [Parameter(ParameterSetName='WorkLog')]
-    [string]$Description,
-    
-    [Parameter(ParameterSetName='WorkLog')]
-    [int]$Duration
+    [Parameter()]
+    [switch]$Silent
 )
 
-# Script-Pfade
-$ScriptPath = $PSScriptRoot
-$ModulePath = Join-Path $ScriptPath "Modules"
-$DataPath = Join-Path $ScriptPath "Data"
-$ReportsPath = Join-Path $ScriptPath "Reports"
-$TemplatesPath = Join-Path $ScriptPath "Templates"
+# ═══════════════════════════════════════════════════════════════════════════
+# INITIALISIERUNG
+# ═══════════════════════════════════════════════════════════════════════════
 
-# Verzeichnisse erstellen falls nicht vorhanden
-@($DataPath, $ReportsPath) | ForEach-Object {
+$ErrorActionPreference = 'Stop'
+$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ModulePath = Join-Path $ScriptPath "modules"
+$ConfigPath = Join-Path $ScriptPath "config"
+$LogPath = Join-Path $ScriptPath "logs"
+
+# Verzeichnisse erstellen
+@($OutputPath, $LogPath) | ForEach-Object {
     if (-not (Test-Path $_)) {
         New-Item -Path $_ -ItemType Directory -Force | Out-Null
     }
 }
 
-# Module importieren
-$ModuleFiles = @(
-    "SystemCheck.psm1",
-    "SQLCheck.psm1",
-    "NetworkCheck.psm1",
-    "SoftwareInventory.psm1",
-    "DirectoryStructure.psm1",
-    "WorkLog.psm1",
-    "ReportGenerator.psm1"
+# Module laden
+$RequiredModules = @(
+    'SystemCheck',
+    'PortCheck',
+    'SQLCheck',
+    'DirectorySetup',
+    'WorkLog',
+    'MarkdownExport'
 )
 
-foreach ($ModuleFile in $ModuleFiles) {
-    $ModuleFilePath = Join-Path $ModulePath $ModuleFile
-    if (Test-Path $ModuleFilePath) {
-        Import-Module $ModuleFilePath -Force
-    } else {
-        Write-Warning "Modul $ModuleFile nicht gefunden. Erstelle Placeholder..."
-    }
-}
-
-#region Hilfsfunktionen
-
-function Write-Header {
-    param([string]$Title)
-    
-    $Width = 70
-    $Line = "═" * $Width
-    $TitlePadded = " $Title ".PadLeft(($Width + $Title.Length) / 2).PadRight($Width)
-    
-    Write-Host ""
-    Write-Host "╔$Line╗" -ForegroundColor Cyan
-    Write-Host "║$TitlePadded║" -ForegroundColor Cyan
-    Write-Host "╚$Line╝" -ForegroundColor Cyan
-    Write-Host ""
-}
-
-function Write-Status {
-    param(
-        [string]$Message,
-        [ValidateSet('OK', 'Warning', 'Error', 'Info')]
-        [string]$Status = 'Info'
-    )
-    
-    $Icon = switch ($Status) {
-        'OK'      { '[✓]'; $Color = 'Green' }
-        'Warning' { '[!]'; $Color = 'Yellow' }
-        'Error'   { '[✗]'; $Color = 'Red' }
-        'Info'    { '[i]'; $Color = 'Cyan' }
-    }
-    
-    Write-Host "$Icon $Message" -ForegroundColor $Color
-}
-
-function Show-Menu {
-    Write-Header "Sage 100 Server Check v1.0"
-    
-    Write-Host "Wählen Sie eine Aktion:" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "  1) Vollständiger System-Check"
-    Write-Host "  2) Nur Systemvoraussetzungen prüfen"
-    Write-Host "  3) Kundenstammblatt generieren"
-    Write-Host "  4) Arbeitsprotokoll hinzufügen"
-    Write-Host "  5) Firewall-Regeln prüfen"
-    Write-Host "  6) SQL Server Check"
-    Write-Host "  Q) Beenden"
-    Write-Host ""
-    
-    $Choice = Read-Host "Ihre Wahl"
-    return $Choice
-}
-
-#endregion
-
-#region Hauptfunktionen
-
-function Invoke-FullCheck {
-    Write-Header "Vollständiger System-Check"
-    
-    $Results = @{
-        Timestamp = Get-Date
-        ServerName = $env:COMPUTERNAME
-        Checks = @{}
-    }
-    
-    # System-Check
-    Write-Status "Prüfe System-Informationen..." -Status Info
-    $Results.Checks.System = Get-SystemInfo
-    
-    # SQL Server Check
-    Write-Status "Prüfe SQL Server..." -Status Info
-    $Results.Checks.SQL = Get-SQLServerInfo
-    
-    # Netzwerk Check
-    Write-Status "Prüfe Netzwerk & Firewall..." -Status Info
-    $Results.Checks.Network = Get-NetworkInfo
-    
-    # Software Inventory
-    Write-Status "Sammle Software-Informationen..." -Status Info
-    $Results.Checks.Software = Get-InstalledSoftware
-    
-    # Directory Structure
-    Write-Status "Analysiere Verzeichnisstrukturen..." -Status Info
-    $Results.Checks.Directories = Get-DirectoryStructure
-    
-    # Ergebnisse speichern
-    $ResultsFile = Join-Path $DataPath "ServerCheck_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
-    $Results | ConvertTo-Json -Depth 10 | Out-File $ResultsFile
-    
-    Write-Status "Ergebnisse gespeichert: $ResultsFile" -Status OK
-    
-    # Probleme anzeigen
-    Show-Issues -Results $Results
-    
-    return $Results
-}
-
-function Test-Requirements {
-    Write-Header "Systemvoraussetzungen Prüfung"
-    
-    $RequirementsFile = Join-Path $TemplatesPath "Sage100-Requirements.json"
-    
-    if (-not (Test-Path $RequirementsFile)) {
-        Write-Status "Requirements-Datei nicht gefunden!" -Status Error
-        return
-    }
-    
-    $Requirements = Get-Content $RequirementsFile | ConvertFrom-Json
-    $SystemInfo = Get-SystemInfo
-    
-    $Issues = @()
-    
-    # OS Version prüfen
-    if ($SystemInfo.OS.Version -notin $Requirements.SupportedOS) {
-        $Issues += @{
-            Category = "Betriebssystem"
-            Issue = "Windows Version nicht unterstützt: $($SystemInfo.OS.Version)"
-            Recommendation = "Upgrade auf Windows Server 2022/2025 oder Windows 11"
-            Severity = "High"
-        }
-    } else {
-        Write-Status "Betriebssystem: $($SystemInfo.OS.Caption) - OK" -Status OK
-    }
-    
-    # RAM prüfen
-    $MinRAM = $Requirements.Hardware.MinRAM_GB
-    $ActualRAM = [math]::Round($SystemInfo.Hardware.TotalRAM_GB, 0)
-    
-    if ($ActualRAM -lt $MinRAM) {
-        $Issues += @{
-            Category = "Hardware"
-            Issue = "Zu wenig RAM: $ActualRAM GB (Minimum: $MinRAM GB)"
-            Recommendation = "RAM auf mindestens $MinRAM GB erweitern"
-            Severity = "High"
-        }
-    } else {
-        Write-Status "RAM: $ActualRAM GB - OK" -Status OK
-    }
-    
-    # CPU prüfen
-    $MinCPUCores = $Requirements.Hardware.MinCPUCores
-    if ($SystemInfo.Hardware.CPUCores -lt $MinCPUCores) {
-        $Issues += @{
-            Category = "Hardware"
-            Issue = "Zu wenig CPU Cores: $($SystemInfo.Hardware.CPUCores) (Minimum: $MinCPUCores)"
-            Recommendation = "CPU mit mindestens $MinCPUCores Cores verwenden"
-            Severity = "Medium"
-        }
-    } else {
-        Write-Status "CPU: $($SystemInfo.Hardware.CPUCores) Cores - OK" -Status OK
-    }
-    
-    if ($Issues.Count -eq 0) {
-        Write-Status "Alle Systemvoraussetzungen erfüllt!" -Status OK
-    } else {
-        Write-Host ""
-        Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Red
-        Write-Host " Probleme gefunden: $($Issues.Count)" -ForegroundColor Red
-        Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Red
-        
-        foreach ($Issue in $Issues) {
-            Write-Host ""
-            Write-Host "[$($Issue.Severity)] $($Issue.Category)" -ForegroundColor $(if ($Issue.Severity -eq 'High') { 'Red' } else { 'Yellow' })
-            Write-Host "  Problem: $($Issue.Issue)"
-            Write-Host "  Empfehlung: $($Issue.Recommendation)" -ForegroundColor Cyan
-        }
-        
-        Write-Host ""
-        $Fix = Read-Host "Möchten Sie Lösungsvorschläge im Detail sehen? (J/N)"
-        if ($Fix -eq 'J') {
-            Show-DetailedSolutions -Issues $Issues
-        }
-    }
-    
-    return $Issues
-}
-
-function New-CustomerReport {
-    param([string]$CustomerName)
-    
-    if (-not $CustomerName) {
-        $CustomerName = Read-Host "Kundenname"
-    }
-    
-    Write-Header "Kundenstammblatt generieren: $CustomerName"
-    
-    # Daten sammeln
-    $Data = @{
-        Customer = $CustomerName
-        Date = Get-Date -Format "yyyy-MM-dd"
-        System = Get-SystemInfo
-        SQL = Get-SQLServerInfo
-        Network = Get-NetworkInfo
-        Software = Get-InstalledSoftware
-        Directories = Get-DirectoryStructure
-        WorkLog = Get-WorkLogEntries
-    }
-    
-    # Markdown generieren
-    $Report = Generate-MarkdownReport -Data $Data
-    
-    # Speichern
-    $SafeCustomerName = $CustomerName -replace '[^\w\s]', '' -replace '\s', '_'
-    $ReportFile = Join-Path $ReportsPath "Kundenstammblatt_${SafeCustomerName}_$(Get-Date -Format 'yyyyMMdd').md"
-    $Report | Out-File $ReportFile -Encoding UTF8
-    
-    Write-Status "Bericht erstellt: $ReportFile" -Status OK
-    
-    # Öffnen?
-    $Open = Read-Host "Möchten Sie den Bericht öffnen? (J/N)"
-    if ($Open -eq 'J') {
-        Start-Process notepad.exe $ReportFile
-    }
-}
-
-function Add-WorkLogEntry {
-    param(
-        [string]$Technician,
-        [string]$Description,
-        [int]$Duration
-    )
-    
-    if (-not $Technician) {
-        $Technician = Read-Host "Techniker-Name"
-    }
-    if (-not $Description) {
-        $Description = Read-Host "Beschreibung der Arbeiten"
-    }
-    if (-not $Duration) {
-        $Duration = Read-Host "Dauer in Minuten"
-    }
-    
-    $Entry = @{
-        Date = Get-Date -Format "yyyy-MM-dd HH:mm"
-        Technician = $Technician
-        Description = $Description
-        Duration = $Duration
-        Server = $env:COMPUTERNAME
-    }
-    
-    Save-WorkLogEntry -Entry $Entry
-    
-    Write-Status "Arbeitsprotokoll-Eintrag gespeichert" -Status OK
-}
-
-function Show-Issues {
-    param($Results)
-    
-    Write-Host ""
-    Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-    Write-Host " Zusammenfassung" -ForegroundColor Cyan
-    Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-    Write-Host ""
-    
-    # Platzhalter für Issue-Detection
-    # Dies würde in den Modulen implementiert werden
-    
-    Write-Status "Check abgeschlossen. Ergebnisse wurden gespeichert." -Status Info
-}
-
-#endregion
-
-#region Main
+Write-Host "`n╔════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+Write-Host "║   Sage 100 Server-Check v1.0                          ║" -ForegroundColor Cyan
+Write-Host "║   Server: $env:COMPUTERNAME".PadRight(56) + "║" -ForegroundColor Cyan
+Write-Host "╚════════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
 
 # Admin-Check
-$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-if (-not $IsAdmin) {
-    Write-Status "WARNUNG: Nicht als Administrator ausgeführt. Einige Prüfungen sind eingeschränkt." -Status Warning
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Warning "Dieses Skript benötigt Administrator-Rechte für vollständige Funktionalität."
+    if (-not $Silent) {
+        $continue = Read-Host "Trotzdem fortfahren? (J/N)"
+        if ($continue -ne 'J') { exit }
+    }
 }
 
-# Parameter-Handling
-if ($FullCheck) {
-    Invoke-FullCheck
+Write-Host "[i] Lade Module..." -ForegroundColor Gray
+
+foreach ($module in $RequiredModules) {
+    $modulePath = Join-Path $ModulePath "$module.psm1"
+    if (Test-Path $modulePath) {
+        Import-Module $modulePath -Force -ErrorAction SilentlyContinue
+        Write-Host "  ✓ $module geladen" -ForegroundColor Green
+    } else {
+        Write-Warning "  ! Modul $module nicht gefunden - erstelle Platzhalter..."
+        # Platzhalter-Modul erstellen (wird später durch echte Module ersetzt)
+        $placeholderContent = @"
+function Get-$module {
+    Write-Host "[$module] Platzhalter - wird implementiert..." -ForegroundColor Yellow
+    return @{ Status = 'NotImplemented'; Warnings = @(); Errors = @() }
 }
-elseif ($CheckRequirements) {
-    Test-Requirements
+Export-ModuleMember -Function *
+"@
+        $placeholderContent | Out-File -FilePath $modulePath -Encoding UTF8
+        Import-Module $modulePath -Force
+    }
 }
-elseif ($GenerateReport) {
-    New-CustomerReport -CustomerName $CustomerName
+
+# ═══════════════════════════════════════════════════════════════════════════
+# KONFIGURATION LADEN
+# ═══════════════════════════════════════════════════════════════════════════
+
+$SysReqFile = Join-Path $ConfigPath "SystemRequirements.json"
+$PortsFile = Join-Path $ConfigPath "Ports.json"
+
+if (Test-Path $SysReqFile) {
+    $SystemRequirements = Get-Content $SysReqFile | ConvertFrom-Json
+} else {
+    Write-Warning "Konfiguration nicht gefunden - verwende Standard-Werte"
+    $SystemRequirements = @{
+        MinRAM = 8
+        RecommendedRAM = 32
+        MinCPUCores = 4
+        MinDiskSpaceGB = 50
+    }
 }
-elseif ($AddWorkLog) {
-    Add-WorkLogEntry -Technician $Technician -Description $Description -Duration $Duration
+
+if (Test-Path $PortsFile) {
+    $PortConfig = Get-Content $PortsFile | ConvertFrom-Json
+} else {
+    $PortConfig = @{
+        SQL = @{ TCP = @(1433); UDP = @(1434) }
+        ApplicationServer = @{ HTTPS_Basic = @(5493); HTTPS_Windows = @(5494) }
+        Blobstorage = @{ HTTPS_Basic = @(4000); HTTPS_Windows = @(4010) }
+    }
 }
-else {
-    # Interaktives Menü
-    do {
-        $Choice = Show-Menu
-        
-        switch ($Choice) {
-            '1' { Invoke-FullCheck; Pause }
-            '2' { Test-Requirements; Pause }
-            '3' { New-CustomerReport; Pause }
-            '4' { Add-WorkLogEntry; Pause }
-            '5' { Write-Status "Firewall-Check wird implementiert..." -Status Info; Pause }
-            '6' { Write-Status "SQL Server Check wird implementiert..." -Status Info; Pause }
-            'Q' { return }
-            default { Write-Status "Ungültige Auswahl" -Status Error; Pause }
+
+# ═══════════════════════════════════════════════════════════════════════════
+# HAUPT-LOGIK
+# ═══════════════════════════════════════════════════════════════════════════
+
+$Results = @{
+    System = $null
+    Ports = $null
+    SQL = $null
+    Directory = $null
+    Timestamp = Get-Date
+    Server = $env:COMPUTERNAME
+}
+
+# CHECK-MODUS
+if ($Mode -in @('Check', 'Fix', 'Full')) {
+    
+    Write-Host "`n[1/4] Hardware & Betriebssystem prüfen..." -ForegroundColor Cyan
+    $Results.System = Get-SystemCheck
+    
+    Write-Host "`n[2/4] Netzwerk & Firewall prüfen..." -ForegroundColor Cyan
+    $Results.Ports = Get-PortCheck -PortConfig $PortConfig
+    
+    Write-Host "`n[3/4] SQL Server prüfen..." -ForegroundColor Cyan
+    $Results.SQL = Get-SQLCheck
+    
+    Write-Host "`n[4/4] Ordnerstruktur prüfen..." -ForegroundColor Cyan
+    $Results.Directory = Get-DirectorySetup
+    
+    # Zusammenfassung
+    Write-Host "`n════════════════════════════════════════════════════════" -ForegroundColor Cyan
+    Write-Host "Zusammenfassung:" -ForegroundColor White
+    
+    $totalChecks = 0
+    $successChecks = 0
+    $warnings = 0
+    $errors = 0
+    
+    foreach ($key in $Results.Keys) {
+        if ($key -notin @('Timestamp', 'Server') -and $Results[$key]) {
+            $totalChecks++
+            if ($Results[$key].Status -eq 'OK') { $successChecks++ }
+            $warnings += $Results[$key].Warnings.Count
+            $errors += $Results[$key].Errors.Count
         }
-    } while ($Choice -ne 'Q')
+    }
+    
+    Write-Host "  ✓ $successChecks/$totalChecks Checks erfolgreich" -ForegroundColor Green
+    if ($warnings -gt 0) {
+        Write-Host "  ⚠ $warnings Warnungen (Benutzereingriff empfohlen)" -ForegroundColor Yellow
+    }
+    if ($errors -gt 0) {
+        Write-Host "  ✗ $errors Kritische Fehler" -ForegroundColor Red
+    }
+    Write-Host "════════════════════════════════════════════════════════`n" -ForegroundColor Cyan
 }
 
-#endregion
+# FIX-MODUS
+if ($Mode -in @('Fix', 'Full') -and -not $Silent) {
+    Write-Host "`n[!] Fix-Modus aktiviert - Probleme können interaktiv behoben werden.`n" -ForegroundColor Yellow
+    
+    # Hier würde die interaktive Problemlösung implementiert
+    # (wird in den einzelnen Modulen umgesetzt)
+}
+
+# EXPORT-MODUS
+if ($Mode -in @('Export', 'Full')) {
+    Write-Host "`n[Export] Erstelle Markdown-Dokumentation..." -ForegroundColor Cyan
+    
+    $exportFile = if ($OutputPath -like "*.md") {
+        $OutputPath
+    } else {
+        Join-Path $OutputPath "Kundenstammblatt_$(Get-Date -Format 'yyyyMMdd_HHmmss').md"
+    }
+    
+    Export-Markdown -Results $Results -OutputPath $exportFile
+    Write-Host "  ✓ Exportiert nach: $exportFile" -ForegroundColor Green
+}
+
+# WORKLOG-MODUS
+if ($Mode -eq 'WorkLog') {
+    Show-WorkLogMenu
+}
+
+# Log erstellen
+$logFile = Join-Path $LogPath "check_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+$Results | ConvertTo-Json -Depth 10 | Out-File -FilePath $logFile -Encoding UTF8
+
+Write-Host "`n[i] Prüfung abgeschlossen. Log: $logFile" -ForegroundColor Gray
+Write-Host ""
