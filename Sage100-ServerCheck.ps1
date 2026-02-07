@@ -4,7 +4,7 @@
 .DESCRIPTION
     Prueft Systemvoraussetzungen fuer Sage 100 und erstellt Dokumentation
 .NOTES
-    Version: 1.0
+    Version: 1.1
     Author: Sage 100 Support Team
 #>
 
@@ -55,6 +55,7 @@ function Show-Menu {
     Write-Host "[5] Arbeitsprotokoll hinzufuegen" -ForegroundColor Cyan
     Write-Host "[6] Markdown-Report erstellen" -ForegroundColor Cyan
     Write-Host "[7] JSON-Snapshot erstellen" -ForegroundColor Cyan
+    Write-Host "[8] Debug-Log anzeigen" -ForegroundColor Magenta
     Write-Host "[0] Beenden" -ForegroundColor Yellow
     Write-Host ""
 }
@@ -64,6 +65,7 @@ function Import-RequiredModules {
     Write-Host "Lade Module..." -ForegroundColor Gray
     
     $modules = @(
+        "DebugLogger",
         "SystemCheck",
         "NetworkCheck",
         "ComplianceCheck",
@@ -74,8 +76,22 @@ function Import-RequiredModules {
     foreach ($module in $modules) {
         $modulePath = Join-Path $ModulesDir "$module.psm1"
         if (Test-Path $modulePath) {
-            Import-Module $modulePath -Force -ErrorAction SilentlyContinue
-            Write-Host "  [OK] $module geladen" -ForegroundColor Green
+            try {
+                Import-Module $modulePath -Force -ErrorAction Stop
+                Write-Host "  [OK] $module geladen" -ForegroundColor Green
+                
+                # Log successful module load
+                if (Get-Command Write-LogAction -ErrorAction SilentlyContinue) {
+                    Write-LogAction -FunctionName "Import-Module" -Status "Success" -Message "Modul $module erfolgreich geladen"
+                }
+            } catch {
+                Write-Host "  [FEHLER] $module konnte nicht geladen werden: $_" -ForegroundColor Red
+                
+                # Log module load error
+                if (Get-Command Write-LogAction -ErrorAction SilentlyContinue) {
+                    Write-LogAction -FunctionName "Import-Module" -Status "Error" -Message "Fehler beim Laden von $module" -ErrorRecord $_
+                }
+            }
         } else {
             Write-Host "  [FEHLER] $module nicht gefunden!" -ForegroundColor Red
         }
@@ -107,6 +123,11 @@ function Start-Sage100Check {
     
     # Lade Module
     Import-RequiredModules
+    
+    # Initialize Debug Logger
+    if (Get-Command Initialize-DebugLog -ErrorAction SilentlyContinue) {
+        Initialize-DebugLog
+    }
     
     # Hauptschleife
     do {
@@ -144,7 +165,29 @@ function Start-Sage100Check {
                 Write-Host "`nErstelle JSON-Snapshot..." -ForegroundColor Cyan
                 New-JSONSnapshot
             }
+            "8" {
+                if (Get-Command Get-DebugLogSummary -ErrorAction SilentlyContinue) {
+                    Get-DebugLogSummary
+                    $exportLog = Read-Host "`nDebug-Log exportieren? (J/N)"
+                    if ($exportLog -eq "J" -or $exportLog -eq "j") {
+                        $logPath = Export-DebugLog
+                        if ($logPath) {
+                            Write-Host "`nLog gespeichert: $logPath" -ForegroundColor Green
+                            Write-Host "Bitte sende diese Datei zur Analyse." -ForegroundColor Cyan
+                        }
+                    }
+                } else {
+                    Write-Host "`nDebug-Logger nicht verfuegbar!" -ForegroundColor Red
+                }
+            }
             "0" {
+                # Export debug log on exit
+                if (Get-Command Export-DebugLog -ErrorAction SilentlyContinue) {
+                    $logPath = Export-DebugLog
+                    if ($logPath) {
+                        Write-Host "`nDebug-Log automatisch gespeichert: $logPath" -ForegroundColor Gray
+                    }
+                }
                 Write-Host "`nAuf Wiedersehen!" -ForegroundColor Green
                 exit
             }
@@ -163,56 +206,66 @@ function Start-Sage100Check {
 
 # Vollstaendige Pruefung
 function Invoke-FullSystemCheck {
-    $results = @{
-        Timestamp = Get-Date
-        SystemInfo = @{}
-        NetworkCheck = @{}
-        ComplianceCheck = @{}
-        Issues = @()
-        Warnings = @()
-    }
+    $operation = Start-LoggedOperation -OperationName "Invoke-FullSystemCheck"
     
-    Write-Host "`n=== SYSTEM-INFORMATIONEN ===" -ForegroundColor Yellow
-    $systemInfo = Get-SystemInformation
-    $results.SystemInfo = $systemInfo
-    
-    Write-Host "`n=== NETZWERK-PRUEFUNG ===" -ForegroundColor Yellow
-    $networkCheck = Test-NetworkConfiguration
-    $results.NetworkCheck = $networkCheck
-    
-    Write-Host "`n=== COMPLIANCE-CHECK ===" -ForegroundColor Yellow
-    $complianceCheck = Test-Sage100Compliance
-    $results.ComplianceCheck = $complianceCheck
-    
-    # Zusammenfassung
-    Write-Host "`n========================================" -ForegroundColor Green
-    Write-Host "ZUSAMMENFASSUNG" -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    
-    $errorCount = 0
-    $warningCount = 0
-    
-    if ($complianceCheck.Issues) {
-        $errorCount = $complianceCheck.Issues.Count
-    }
-    if ($complianceCheck.Warnings) {
-        $warningCount = $complianceCheck.Warnings.Count
-    }
-    
-    Write-Host "`nFEHLER: $errorCount" -ForegroundColor $(if ($errorCount -gt 0) { "Red" } else { "Green" })
-    Write-Host "WARNUNGEN: $warningCount" -ForegroundColor $(if ($warningCount -gt 0) { "Yellow" } else { "Green" })
-    
-    # Speichere Ergebnisse
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $resultFile = Join-Path $DataDir "CheckResult_$timestamp.json"
-    $results | ConvertTo-Json -Depth 10 | Out-File $resultFile
-    Write-Host "`nErgebnisse gespeichert: $resultFile" -ForegroundColor Gray
-    
-    # Frage nach Report-Erstellung
-    Write-Host ""
-    $createReport = Read-Host "Markdown-Report jetzt erstellen? (J/N)"
-    if ($createReport -eq "J" -or $createReport -eq "j") {
-        New-MarkdownReport -Data $results
+    try {
+        $results = @{
+            Timestamp = Get-Date
+            SystemInfo = @{}
+            NetworkCheck = @{}
+            ComplianceCheck = @{}
+            Issues = @()
+            Warnings = @()
+        }
+        
+        Write-Host "`n=== SYSTEM-INFORMATIONEN ===" -ForegroundColor Yellow
+        $systemInfo = Get-SystemInformation
+        $results.SystemInfo = $systemInfo
+        
+        Write-Host "`n=== NETZWERK-PRUEFUNG ===" -ForegroundColor Yellow
+        $networkCheck = Test-NetworkConfiguration
+        $results.NetworkCheck = $networkCheck
+        
+        Write-Host "`n=== COMPLIANCE-CHECK ===" -ForegroundColor Yellow
+        $complianceCheck = Test-Sage100Compliance
+        $results.ComplianceCheck = $complianceCheck
+        
+        # Zusammenfassung
+        Write-Host "`n========================================" -ForegroundColor Green
+        Write-Host "ZUSAMMENFASSUNG" -ForegroundColor Green
+        Write-Host "========================================" -ForegroundColor Green
+        
+        $errorCount = 0
+        $warningCount = 0
+        
+        if ($complianceCheck.Issues) {
+            $errorCount = $complianceCheck.Issues.Count
+        }
+        if ($complianceCheck.Warnings) {
+            $warningCount = $complianceCheck.Warnings.Count
+        }
+        
+        Write-Host "`nFEHLER: $errorCount" -ForegroundColor $(if ($errorCount -gt 0) { "Red" } else { "Green" })
+        Write-Host "WARNUNGEN: $warningCount" -ForegroundColor $(if ($warningCount -gt 0) { "Yellow" } else { "Green" })
+        
+        # Speichere Ergebnisse
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $resultFile = Join-Path $DataDir "CheckResult_$timestamp.json"
+        $results | ConvertTo-Json -Depth 10 | Out-File $resultFile
+        Write-Host "`nErgebnisse gespeichert: $resultFile" -ForegroundColor Gray
+        
+        # Frage nach Report-Erstellung
+        Write-Host ""
+        $createReport = Read-Host "Markdown-Report jetzt erstellen? (J/N)"
+        if ($createReport -eq "J" -or $createReport -eq "j") {
+            New-MarkdownReport -Data $results
+        }
+        
+        Stop-LoggedOperation -Operation $operation -Status "Success" -Result $results
+        
+    } catch {
+        Stop-LoggedOperation -Operation $operation -Status "Error" -ErrorRecord $_
+        throw
     }
 }
 
