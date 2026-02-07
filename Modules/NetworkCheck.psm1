@@ -1,211 +1,259 @@
+# NetworkCheck.psm1
+# Netzwerk- und Firewall-Pruefungen fuer Sage 100
+
 function Test-NetworkConfiguration {
-    <#
-    .SYNOPSIS
-    Prueft Netzwerk-Konfiguration und Firewall-Regeln
-    #>
-    
     param(
         [Parameter(Mandatory=$false)]
-        [string]$ConfigPath = ".\Config\Sage100Config.json"
+        [hashtable]$Config
     )
-    
-    Write-Host "`n[i] Pruefe Netzwerk-Konfiguration..." -ForegroundColor Cyan
-    
-    $result = @{
+
+    Write-Host ""
+    Write-Host "Pruefe Netzwerk-Konfiguration..." -ForegroundColor Cyan
+
+    $results = @{
         Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        Ports = @()
-        Firewall = @()
-        DNS = @{}
+        NetworkAdapters = @()
+        PortChecks = @()
+        FirewallRules = @()
+        DNSTests = @()
+        Issues = @()
         Warnings = @()
-        Errors = @()
     }
-    
-    # Config laden
+
+    # 1. Netzwerkadapter pruefen
     try {
-        $config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
+        $adapters = Get-NetAdapter | Where-Object {$_.Status -eq 'Up'}
+        foreach ($adapter in $adapters) {
+            $ip = Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+            $results.NetworkAdapters += @{
+                Name = $adapter.Name
+                Status = $adapter.Status
+                Speed = $adapter.LinkSpeed
+                IPAddress = $ip.IPAddress
+                MACAddress = $adapter.MacAddress
+            }
+            Write-Host "  Adapter: $($adapter.Name) - $($ip.IPAddress) [$($adapter.LinkSpeed)]" -ForegroundColor Gray
+        }
     } catch {
-        $result.Errors += "Config-Datei konnte nicht geladen werden: $_"
-        return $result
+        $results.Issues += "Fehler beim Auslesen der Netzwerkadapter: $_"
     }
-    
-    # SQL Server Ports pruefen
-    Write-Host "`n  Pruefe SQL Server Ports..." -ForegroundColor Gray
-    
-    $sqlPort = 1433
-    try {
-        $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $sqlPort)
-        $listener.Start()
-        $listener.Stop()
+
+    # 2. Wichtige Ports fuer Sage 100 pruefen
+    $portsToCheck = @(
+        @{Port=1433; Service="SQL Server"; Protocol="TCP"},
+        @{Port=5493; Service="Sage 100 AppServer"; Protocol="TCP"},
+        @{Port=4000; Service="Sage 100 Lizenzserver"; Protocol="TCP"},
+        @{Port=135; Service="RPC Endpoint Mapper"; Protocol="TCP"},
+        @{Port=139; Service="NetBIOS Session"; Protocol="TCP"},
+        @{Port=445; Service="SMB/CIFS"; Protocol="TCP"},
+        @{Port=3389; Service="Remote Desktop"; Protocol="TCP"}
+    )
+
+    Write-Host ""
+    Write-Host "Pruefe wichtige Ports..." -ForegroundColor Cyan
+
+    foreach ($portCheck in $portsToCheck) {
+        $port = $portCheck.Port
+        $service = $portCheck.Service
         
-        $portInfo = @{
-            Port = $sqlPort
-            Name = "SQL Server"
-            Status = "Verfuegbar"
-            InUse = $false
-        }
-        Write-Host "    Port $sqlPort (SQL Server): Verfuegbar" -ForegroundColor Green
-        
-    } catch {
-        $portInfo = @{
-            Port = $sqlPort
-            Name = "SQL Server"
-            Status = "In Verwendung"
-            InUse = $true
-        }
-        Write-Host "    Port $sqlPort (SQL Server): In Verwendung" -ForegroundColor Yellow
-    }
-    
-    $result.Ports += $portInfo
-    
-    # Application Server Ports pruefen
-    Write-Host "`n  Pruefe Application Server Ports..." -ForegroundColor Gray
-    
-    $appServerPorts = @(5493, 5494, 5466)
-    foreach ($port in $appServerPorts) {
         try {
-            $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
-            $listener.Start()
-            $listener.Stop()
-            
-            $portInfo = @{
+            $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            $isListening = $listener -ne $null
+
+            $portResult = @{
                 Port = $port
-                Name = "Application Server"
-                Status = "Verfuegbar"
-                InUse = $false
+                Service = $service
+                Protocol = $portCheck.Protocol
+                IsListening = $isListening
+                Process = ""
             }
-            Write-Host "    Port $port: Verfuegbar" -ForegroundColor Green
-            
+
+            if ($isListening) {
+                try {
+                    $process = Get-Process -Id $listener[0].OwningProcess -ErrorAction SilentlyContinue
+                    $portResult.Process = $process.ProcessName
+                    Write-Host "  Port $port ($service): OFFEN - Prozess: $($process.ProcessName)" -ForegroundColor Green
+                } catch {
+                    Write-Host "  Port $port ($service): OFFEN" -ForegroundColor Green
+                }
+            } else {
+                Write-Host "  Port $port ($service): GESCHLOSSEN" -ForegroundColor Yellow
+                $results.Warnings += "Port $port ($service) ist nicht geoeffnet"
+            }
+
+            $results.PortChecks += $portResult
+
         } catch {
-            $portInfo = @{
-                Port = $port
-                Name = "Application Server"
-                Status = "In Verwendung"
-                InUse = $true
-            }
-            Write-Host "    Port $port: In Verwendung" -ForegroundColor Yellow
+            $results.Issues += "Fehler beim Pruefen von Port ${port}: $_"
         }
-        
-        $result.Ports += $portInfo
     }
-    
-    # BlobStorage Ports pruefen
-    Write-Host "`n  Pruefe BlobStorage Ports..." -ForegroundColor Gray
-    
-    $blobPorts = @(4000, 4010, 4020)
-    foreach ($port in $blobPorts) {
-        try {
-            $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
-            $listener.Start()
-            $listener.Stop()
-            
-            $portInfo = @{
-                Port = $port
-                Name = "BlobStorage"
-                Status = "Verfuegbar"
-                InUse = $false
-            }
-            Write-Host "    Port $port: Verfuegbar" -ForegroundColor Green
-            
-        } catch {
-            $portInfo = @{
-                Port = $port
-                Name = "BlobStorage"
-                Status = "In Verwendung"
-                InUse = $true
-            }
-            Write-Host "    Port $port: In Verwendung" -ForegroundColor Yellow
-        }
-        
-        $result.Ports += $portInfo
-    }
-    
-    # Firewall-Regeln pruefen
-    Write-Host "`n  Pruefe Firewall-Regeln..." -ForegroundColor Gray
-    
+
+    # 3. Firewall-Regeln pruefen
+    Write-Host ""
+    Write-Host "Pruefe Firewall-Regeln..." -ForegroundColor Cyan
+
     try {
-        $fwRules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object {
-            $_.DisplayName -like "*SQL*" -or 
-            $_.DisplayName -like "*Sage*" -or
-            $_.DisplayName -like "*1433*"
-        }
+        $firewallEnabled = Get-NetFirewallProfile | Where-Object {$_.Enabled -eq $true}
         
-        if ($fwRules) {
-            foreach ($rule in $fwRules) {
-                $result.Firewall += @{
+        foreach ($profile in $firewallEnabled) {
+            Write-Host "  Firewall-Profil '$($profile.Name)' ist AKTIV" -ForegroundColor Gray
+        }
+
+        # Pruefe spezifische Sage 100 Regeln
+        $sage100Rules = Get-NetFirewallRule | Where-Object {
+            $_.DisplayName -like "*Sage*" -or 
+            $_.DisplayName -like "*SQL*" -or
+            $_.DisplayName -like "*1433*" -or
+            $_.DisplayName -like "*5493*"
+        }
+
+        if ($sage100Rules.Count -gt 0) {
+            Write-Host "  Gefundene Sage 100 Firewall-Regeln: $($sage100Rules.Count)" -ForegroundColor Green
+            foreach ($rule in $sage100Rules) {
+                $results.FirewallRules += @{
                     Name = $rule.DisplayName
                     Enabled = $rule.Enabled
                     Direction = $rule.Direction
                     Action = $rule.Action
                 }
-                Write-Host "    Regel gefunden: $($rule.DisplayName) ($(if($rule.Enabled){'Aktiv'}else{'Inaktiv'}))" -ForegroundColor $(if($rule.Enabled){'Green'}else{'Yellow'})
             }
         } else {
-            $result.Warnings += "Keine Firewall-Regeln fuer SQL Server oder Sage gefunden"
-            Write-Host "    WARNUNG: Keine relevanten Firewall-Regeln gefunden" -ForegroundColor Yellow
+            Write-Host "  WARNUNG: Keine Sage 100 spezifischen Firewall-Regeln gefunden" -ForegroundColor Yellow
+            $results.Warnings += "Keine Sage 100 Firewall-Regeln konfiguriert"
         }
-        
+
     } catch {
-        $result.Warnings += "Firewall-Regeln konnten nicht geprueft werden: $_"
-        Write-Host "    WARNUNG: Firewall konnte nicht geprueft werden" -ForegroundColor Yellow
+        $results.Issues += "Fehler beim Pruefen der Firewall: $_"
     }
-    
-    # DNS-Aufloesung pruefen
-    Write-Host "`n  Pruefe DNS-Aufloesung..." -ForegroundColor Gray
+
+    # 4. DNS-Tests (nur wenn Config vorhanden)
+    if ($Config -and $Config.DNSTestHosts) {
+        Write-Host ""
+        Write-Host "Pruefe DNS-Aufloesung..." -ForegroundColor Cyan
+
+        foreach ($hostname in $Config.DNSTestHosts) {
+            try {
+                $resolved = Resolve-DnsName -Name $hostname -ErrorAction SilentlyContinue
+                if ($resolved) {
+                    Write-Host "  $hostname -> $($resolved[0].IPAddress)" -ForegroundColor Green
+                    $results.DNSTests += @{
+                        Hostname = $hostname
+                        Resolved = $true
+                        IPAddress = $resolved[0].IPAddress
+                    }
+                } else {
+                    Write-Host "  $hostname -> NICHT AUFLOESBAR" -ForegroundColor Red
+                    $results.DNSTests += @{
+                        Hostname = $hostname
+                        Resolved = $false
+                        IPAddress = $null
+                    }
+                    $results.Issues += "DNS: $hostname kann nicht aufgeloest werden"
+                }
+            } catch {
+                $results.Issues += "DNS-Test fuer $hostname fehlgeschlagen: $_"
+            }
+        }
+    }
+
+    # 5. Internet-Verbindung testen
+    Write-Host ""
+    Write-Host "Teste Internet-Verbindung..." -ForegroundColor Cyan
     
     try {
-        $hostname = [System.Net.Dns]::GetHostName()
-        $ipAddresses = [System.Net.Dns]::GetHostAddresses($hostname) | Where-Object { $_.AddressFamily -eq 'InterNetwork' }
-        
-        $result.DNS = @{
-            Hostname = $hostname
-            IPAddresses = @($ipAddresses | ForEach-Object { $_.IPAddressToString })
+        $pingTest = Test-Connection -ComputerName "8.8.8.8" -Count 2 -Quiet
+        if ($pingTest) {
+            Write-Host "  Internet-Verbindung: OK" -ForegroundColor Green
+            $results.InternetConnectivity = $true
+        } else {
+            Write-Host "  Internet-Verbindung: FEHLER" -ForegroundColor Red
+            $results.InternetConnectivity = $false
+            $results.Warnings += "Keine Internet-Verbindung verfuegbar"
         }
-        
-        Write-Host "    Hostname: $hostname" -ForegroundColor Green
-        foreach ($ip in $ipAddresses) {
-            Write-Host "    IP: $($ip.IPAddressToString)" -ForegroundColor Green
-        }
-        
     } catch {
-        $result.Errors += "DNS-Aufloesung fehlgeschlagen: $_"
-        Write-Host "    FEHLER: DNS konnte nicht aufgeloest werden" -ForegroundColor Red
+        $results.InternetConnectivity = $false
+        $results.Warnings += "Internet-Test fehlgeschlagen"
     }
-    
-    return $result
+
+    return $results
 }
 
 function New-FirewallRule {
-    <#
-    .SYNOPSIS
-    Erstellt eine neue Firewall-Regel
-    #>
-    
     param(
         [Parameter(Mandatory=$true)]
+        [int]$Port,
+        
+        [Parameter(Mandatory=$true)]
         [string]$Name,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$Protocol = "TCP",
+        
+        [Parameter(Mandatory=$false)]
+        [string]$Direction = "Inbound"
+    )
+
+    Write-Host ""
+    Write-Host "Erstelle Firewall-Regel: $Name (Port $Port/$Protocol)" -ForegroundColor Cyan
+
+    try {
+        $existingRule = Get-NetFirewallRule -DisplayName $Name -ErrorAction SilentlyContinue
+        
+        if ($existingRule) {
+            Write-Host "  Regel existiert bereits: $Name" -ForegroundColor Yellow
+            return $false
+        }
+
+        New-NetFirewallRule `
+            -DisplayName $Name `
+            -Direction $Direction `
+            -Protocol $Protocol `
+            -LocalPort $Port `
+            -Action Allow `
+            -Enabled True `
+            -ErrorAction Stop
+
+        Write-Host "  Firewall-Regel erfolgreich erstellt!" -ForegroundColor Green
+        return $true
+
+    } catch {
+        Write-Host "  FEHLER beim Erstellen der Firewall-Regel: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Test-Port {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ComputerName,
         
         [Parameter(Mandatory=$true)]
         [int]$Port,
         
         [Parameter(Mandatory=$false)]
-        [string]$Protocol = "TCP"
+        [int]$Timeout = 1000
     )
-    
+
     try {
-        New-NetFirewallRule -DisplayName $Name `
-                            -Direction Inbound `
-                            -Protocol $Protocol `
-                            -LocalPort $Port `
-                            -Action Allow `
-                            -ErrorAction Stop
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $asyncResult = $tcpClient.BeginConnect($ComputerName, $Port, $null, $null)
+        $wait = $asyncResult.AsyncWaitHandle.WaitOne($Timeout, $false)
         
-        Write-Host "[OK] Firewall-Regel '$Name' erstellt (Port $Port)" -ForegroundColor Green
-        return $true
-        
+        if ($wait) {
+            try {
+                $tcpClient.EndConnect($asyncResult)
+                $tcpClient.Close()
+                return $true
+            } catch {
+                return $false
+            }
+        } else {
+            $tcpClient.Close()
+            return $false
+        }
     } catch {
-        Write-Host "[FEHLER] Firewall-Regel konnte nicht erstellt werden: $_" -ForegroundColor Red
         return $false
     }
 }
 
-Export-ModuleMember -Function Test-NetworkConfiguration, New-FirewallRule
+Export-ModuleMember -Function Test-NetworkConfiguration, New-FirewallRule, Test-Port
