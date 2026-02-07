@@ -179,7 +179,7 @@ function Test-Sage100Compliance {
                             $majorVersion = [int]($sqlVersion.Split('.')[0])
                             if ($majorVersion -lt 13) {
                                 Write-Host "    WARNUNG: SQL Server Version zu alt (2016+ empfohlen)" -ForegroundColor Yellow
-                                $results.Warnings += "SQL Server $instance: Version $sqlVersion ist veraltet"
+                                $results.Warnings += "SQL Server ${instance} - Version $sqlVersion ist veraltet"
                             }
                         }
                     }
