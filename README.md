@@ -11,6 +11,8 @@ Dieses Tool unterstützt bei der Installation und Wartung von Sage 100 Umgebunge
 - ✅ **Interaktive Behebung** erkannter Probleme (User entscheidet)
 - ✅ **Dokumentation** als Markdown-Export (Kundenstammblatt)
 - ✅ **Arbeitsprotokoll** für geleistete Tätigkeiten
+- ✅ **Debug-Logging** für Fehleranalyse
+- ✅ **Grafische Benutzeroberfläche** (GUI) - NEU! 🎨
 
 ---
 
@@ -19,6 +21,7 @@ Dieses Tool unterstützt bei der Installation und Wartung von Sage 100 Umgebunge
 ### Voraussetzungen
 - Windows Server 2022/2025 oder Windows 11
 - PowerShell 5.1 oder höher
+- .NET Framework 4.7.2+
 - Administratorrechte (für System-Checks und Konfigurationen)
 
 ### Schnellinstallation
@@ -35,9 +38,59 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 3. **Tool starten**
+
+**Option A: Grafische Oberfläche (empfohlen)**
+```powershell
+.\Sage100-ServerCheck-GUI.ps1
+```
+
+**Option B: PowerShell-Konsole (klassisch)**
 ```powershell
 .\Sage100-ServerCheck.ps1
 ```
+
+---
+
+## 🎨 GUI-Version (NEU!)
+
+Die neue grafische Benutzeroberfläche bietet:
+
+### Features
+- **Dashboard** mit Live-Status-Übersicht
+- **Tab-basierte Navigation**
+  - System-Informationen
+  - Netzwerk & Firewall
+  - Compliance-Check
+  - Debug-Logs
+- **Ein-Klick-Prüfungen**
+- **Visual Status-Indikatoren** (✅ Grün, ⚠️ Orange, ❌ Rot)
+- **Export-Funktionen** über Menü
+- **Progress-Bars** für laufende Checks
+
+### Starten
+
+```powershell
+.\Sage100-ServerCheck-GUI.ps1
+```
+
+![GUI Screenshot](docs/gui-screenshot.png)
+
+### Menü-Optionen
+
+**Datei**
+- Export Markdown-Report
+- Export JSON-Snapshot
+- Export Debug-Log
+- Beenden
+
+**Aktionen**
+- Vollständige Prüfung
+- Nur System-Check
+- Nur Netzwerk-Check
+- Nur Compliance-Check
+
+**Hilfe**
+- Über
 
 ---
 
@@ -46,49 +99,72 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 Sage100-ServerCheck/
 │
-├── Sage100-ServerCheck.ps1      # Haupt-Skript (Entry Point)
+├── Sage100-ServerCheck.ps1          # Haupt-Skript (CLI)
+├── Sage100-ServerCheck-GUI.ps1      # GUI-Starter (NEU)
+│
+├── GUI/
+│   └── MainWindow.ps1               # GUI-Hauptfenster
+│
 ├── config/
-│   ├── SystemRequirements.json  # Sage 100 Systemvoraussetzungen
-│   └── Ports.json               # Erforderliche Firewall-Ports
+│   ├── SystemRequirements.json      # Sage 100 Systemvoraussetzungen
+│   └── Ports.json                   # Erforderliche Firewall-Ports
 │
-├── modules/
-│   ├── SystemCheck.psm1         # Hardware/Software-Prüfung
-│   ├── PortCheck.psm1           # Netzwerk & Firewall
-│   ├── SQLCheck.psm1            # SQL Server Validierung
-│   ├── DirectorySetup.psm1      # Ordnerstruktur & Berechtigungen
-│   ├── WorkLog.psm1             # Arbeitsprotokoll
-│   └── MarkdownExport.psm1      # Kundenstammblatt-Export
+├── Modules/
+│   ├── SystemCheck.psm1             # Hardware/Software-Prüfung
+│   ├── NetworkCheck.psm1            # Netzwerk & Firewall
+│   ├── ComplianceCheck.psm1         # Sage 100 Compliance
+│   ├── WorkLog.psm1                 # Arbeitsprotokoll
+│   ├── DebugLogger.psm1             # Debug-Logging (NEU)
+│   └── ReportGenerator.psm1         # Markdown/JSON-Export
 │
-├── reports/                      # Generierte Reports
-└── logs/                         # Arbeitsprotokolle
+├── Data/
+│   ├── Logs/                        # Debug-Logs
+│   ├── Reports/                     # Generierte Reports
+│   └── Snapshots/                   # JSON-Snapshots
+│
+└── README.md
 ```
 
 ---
 
 ## 🛠️ Verwendung
 
-### Standard-Check durchführen
+### CLI-Version (PowerShell-Konsole)
+
+#### Standard-Check durchführen
 
 ```powershell
-.\Sage100-ServerCheck.ps1 -Mode Check
+.\Sage100-ServerCheck.ps1
 ```
 
-**Ausgabe:**
-- Liste aller geprüften Komponenten
-- Warnungen/Fehler mit Lösungsvorschlägen
-- Interaktive Behebung möglich
+**Menü:**
+```
+[1] Vollständige System-Prüfung
+[2] Nur System-Informationen sammeln
+[3] Netzwerk & Firewall prüfen
+[4] Compliance-Check (Sage 100 Voraussetzungen)
+[5] Arbeitsprotokoll hinzufügen
+[6] Markdown-Report erstellen
+[7] JSON-Snapshot erstellen
+[8] Debug-Log anzeigen (NEU)
+[0] Beenden
+```
 
-### Nur Markdown-Export
+### GUI-Version (Windows Forms)
 
 ```powershell
-.\Sage100-ServerCheck.ps1 -Mode Export -OutputPath "C:\Reports\Kunde_XYZ.md"
+.\Sage100-ServerCheck-GUI.ps1
 ```
 
-### Vollständige Prüfung + Export
+**Dashboard:**
+- Klicke auf "Vollständige Prüfung starten"
+- Oder navigiere zu den einzelnen Tabs
+- Status-Karten zeigen Live-Ergebnisse
 
-```powershell
-.\Sage100-ServerCheck.ps1 -Mode Full
-```
+**Export:**
+- Menü → Datei → Export wählen
+- Speicherort auswählen
+- Fertig!
 
 ---
 
@@ -126,145 +202,55 @@ Sage100-ServerCheck/
 
 ---
 
-## 📄 Beispiel-Output
+## 📊 Debug-Logging (NEU!)
+
+### Automatisches Logging
+
+Bei jedem Lauf werden automatisch Debug-Informationen erfasst:
+
+```json
+{
+  "SessionId": "abc-123-def",
+  "StartTime": "2026-02-07T16:30:00",
+  "Summary": {
+    "TotalActions": 45,
+    "SuccessfulActions": 42,
+    "FailedActions": 3
+  },
+  "Actions": [...],
+  "Errors": [...]
+}
+```
+
+### Log anzeigen
+
+**CLI:**
+```
+Option [8] → Debug-Log anzeigen
+```
+
+**GUI:**
+```
+Tab "Debug-Logs" → Logs aktualisieren
+```
+
+### Log exportieren
 
 ```
-╔════════════════════════════════════════════════════════╗
-║   Sage 100 Server-Check v1.0                          ║
-║   Server: SRV-SAGE-01                                 ║
-╚════════════════════════════════════════════════════════╝
-
-[✓] Hardware
-    CPU: Intel Xeon E5-2680 v4 @ 2.8 GHz (14 Cores)
-    RAM: 64 GB
-    Disk: SSD, 500 GB frei
-
-[✓] Betriebssystem
-    Windows Server 2022 Standard (Build 20348)
-    Support bis: 13.10.2026
-
-[⚠] Software
-    .NET Framework 4.8 - OK
-    Access Runtime 2019 (32-bit) - FEHLT!
-    
-    → Möchten Sie Access Runtime jetzt installieren? [J/N]
-
-[✓] SQL Server
-    Version: SQL Server 2022 Standard Edition
-    Instanz: MSSQLSERVER (Default)
-    Port: 1433 TCP - OK
-
-[⚠] Firewall
-    Port 5493 (Application Server) - BLOCKIERT
-    
-    → Firewall-Regel erstellen? [J/N]
-
-[✓] Ordnerstruktur
-    C:\Sage\Daten - Vorhanden
-    Berechtigungen: Korrekt
-
-════════════════════════════════════════════════════════
-Zusammenfassung:
-  ✓ 4 Checks erfolgreich
-  ⚠ 2 Warnungen (Benutzereingriff erforderlich)
-  ✗ 0 Kritische Fehler
-════════════════════════════════════════════════════════
+Menü → Datei → Export Debug-Log
+→ Speichert als JSON-Datei
 ```
+
+**Log enthält:**
+- Session-ID
+- Zeitstempel aller Aktionen
+- Fehlermeldungen mit Stack-Trace
+- Performance-Metriken (langsamste Operationen)
+- System-Kontext (PC-Name, User, OS-Version)
 
 ---
 
-## 🔧 Interaktive Problemlösung
-
-Bei erkannten Problemen bietet das Tool:
-
-1. **Detaillierte Erklärung** des Problems
-2. **Lösungsvorschlag** basierend auf Sage-Dokumentation
-3. **Automatische Behebung** (mit User-Bestätigung)
-4. **Manuelle Anleitung** (falls automatisch nicht möglich)
-
-### Beispiel: Fehlende Firewall-Regel
-
-```
-[⚠] Port 5493 (Application Server HTTPS Basic) ist blockiert
-
-Problem: 
-  Der Sage 100 Application Server benötigt eingehende Verbindungen
-  auf Port 5493 für HTTPS Basic Authentication.
-
-Lösung:
-  Firewall-Regel erstellen:
-  - Name: Sage100-AppServer-HTTPS-Basic
-  - Port: 5493 (TCP, Eingehend)
-  - Profil: Domain, Private
-
-Aktion:
-  [1] Regel jetzt automatisch erstellen
-  [2] Manuelle Anleitung anzeigen
-  [3] Überspringen
-  
-Ihre Wahl:
-```
-
----
-
-## 📊 Markdown-Export
-
-Das Tool generiert ein Kundenstammblatt im Markdown-Format:
-
-```markdown
-# Kundenstammblatt - [Kunde XYZ]
-**Erstellt am:** 07.02.2026
-
-## Server-Informationen
-- **Servername:** SRV-SAGE-01
-- **Betriebssystem:** Windows Server 2022 Standard
-- **RAM:** 64 GB
-- **CPU:** Intel Xeon E5-2680 v4 (14 Cores)
-
-## Installierte Software
-- Sage 100 Version 9.0.10
-- SQL Server 2022 Standard Edition
-- Microsoft Access Runtime 2019 (32-bit)
-
-## Netzwerk-Konfiguration
-- IP-Adresse: 192.168.1.100
-- SQL Port: 1433
-- Application Server Ports: 5493, 5494
-- Firewall: Konfiguriert
-
-## Terminhistorie
-| Datum       | Techniker | Tätigkeit                     | Dauer |
-|-------------|-----------|-------------------------------|-------|
-| 07.02.2026  | M. Jung   | Initiale Installation         | 4h    |
-| 07.02.2026  | M. Jung   | Firewall-Konfiguration        | 1h    |
-```
-
----
-
-## 📝 Arbeitsprotokoll
-
-Erfassen Sie durchgeführte Arbeiten direkt im Tool:
-
-```powershell
-.\Sage100-ServerCheck.ps1 -Mode WorkLog -Add
-```
-
-**Dialog:**
-```
-Arbeitsprotokoll hinzufügen
-═══════════════════════════════════════
-Datum [Enter = heute]:
-Techniker:           M. Jung
-Tätigkeit:           SQL Server Upgrade auf 2022
-Dauer (Stunden):     3
-Bemerkungen:         Erfolgreiche Migration, keine Downtime
-
-[✓] Eintrag gespeichert
-```
-
----
-
-## ⚙️ Konfiguration
+## 🔧 Konfiguration
 
 ### Systemvoraussetzungen anpassen
 
@@ -330,5 +316,5 @@ Bei Fragen oder Problemen:
 
 ---
 
-**Version:** 1.0  
+**Version:** 2.0 (GUI-Version)  
 **Letzte Aktualisierung:** Februar 2026
