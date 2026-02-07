@@ -52,7 +52,7 @@ class Sage100GUI {
     [void]CreateMenuBar() {
         $menuStrip = New-Object System.Windows.Forms.MenuStrip
         
-        # Datei-Menü
+        # Datei-Menu
         $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem("&Datei")
         
         $exportMarkdown = New-Object System.Windows.Forms.ToolStripMenuItem("Export Markdown-Report")
@@ -70,10 +70,10 @@ class Sage100GUI {
         $fileMenu.DropDownItems.AddRange(@($exportMarkdown, $exportJSON, $exportDebugLog, 
             (New-Object System.Windows.Forms.ToolStripSeparator), $exitMenu))
         
-        # Aktionen-Menü
+        # Aktionen-Menu
         $actionsMenu = New-Object System.Windows.Forms.ToolStripMenuItem("&Aktionen")
         
-        $fullCheck = New-Object System.Windows.Forms.ToolStripMenuItem("Vollständige Prüfung")
+        $fullCheck = New-Object System.Windows.Forms.ToolStripMenuItem("Vollstaendige Pruefung")
         $fullCheck.Add_Click({ $this.RunFullCheck() })
         
         $systemCheck = New-Object System.Windows.Forms.ToolStripMenuItem("Nur System-Check")
@@ -89,10 +89,10 @@ class Sage100GUI {
             (New-Object System.Windows.Forms.ToolStripSeparator),
             $systemCheck, $networkCheck, $complianceCheck))
         
-        # Hilfe-Menü
+        # Hilfe-Menu
         $helpMenu = New-Object System.Windows.Forms.ToolStripMenuItem("&Hilfe")
         
-        $about = New-Object System.Windows.Forms.ToolStripMenuItem("Über")
+        $about = New-Object System.Windows.Forms.ToolStripMenuItem("Ueber")
         $about.Add_Click({ $this.ShowAbout() })
         
         $helpMenu.DropDownItems.Add($about)
@@ -140,7 +140,7 @@ class Sage100GUI {
         
         # Start-Button
         $startButton = New-Object System.Windows.Forms.Button
-        $startButton.Text = "Vollständige Prüfung starten"
+        $startButton.Text = "Vollstaendige Pruefung starten"
         $startButton.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
         $startButton.Location = New-Object System.Drawing.Point(20, 80)
         $startButton.Size = New-Object System.Drawing.Size(300, 50)
@@ -154,15 +154,15 @@ class Sage100GUI {
         $yPos = 150
         
         # System-Status Karte
-        $systemCard = $this.CreateStatusCard("System", "Noch nicht geprüft", "Gray", 20, $yPos)
+        $systemCard = $this.CreateStatusCard("System", "Noch nicht geprueft", "Gray", 20, $yPos)
         $dashboardTab.Controls.Add($systemCard)
         
         # Netzwerk-Status Karte
-        $networkCard = $this.CreateStatusCard("Netzwerk", "Noch nicht geprüft", "Gray", 400, $yPos)
+        $networkCard = $this.CreateStatusCard("Netzwerk", "Noch nicht geprueft", "Gray", 400, $yPos)
         $dashboardTab.Controls.Add($networkCard)
         
         # Compliance-Status Karte
-        $complianceCard = $this.CreateStatusCard("Compliance", "Noch nicht geprüft", "Gray", 780, $yPos)
+        $complianceCard = $this.CreateStatusCard("Compliance", "Noch nicht geprueft", "Gray", 780, $yPos)
         $dashboardTab.Controls.Add($complianceCard)
         
         $this.TabControl.TabPages.Add($dashboardTab)
@@ -230,7 +230,7 @@ class Sage100GUI {
     
     [void]CreateNetworkTab() {
         $networkTab = New-Object System.Windows.Forms.TabPage
-        $networkTab.Text = "Netzwerk & Firewall"
+        $networkTab.Text = "Netzwerk und Firewall"
         $networkTab.BackColor = [System.Drawing.Color]::White
         
         # RichTextBox für Netzwerk-Details
@@ -244,7 +244,7 @@ class Sage100GUI {
         
         # Refresh-Button
         $refreshButton = New-Object System.Windows.Forms.Button
-        $refreshButton.Text = "Netzwerk prüfen"
+        $refreshButton.Text = "Netzwerk pruefen"
         $refreshButton.Location = New-Object System.Drawing.Point(10, 10)
         $refreshButton.Size = New-Object System.Drawing.Size(200, 30)
         $refreshButton.Add_Click({ $this.RunNetworkCheck() })
@@ -269,7 +269,7 @@ class Sage100GUI {
         
         # Refresh-Button
         $refreshButton = New-Object System.Windows.Forms.Button
-        $refreshButton.Text = "Compliance prüfen"
+        $refreshButton.Text = "Compliance pruefen"
         $refreshButton.Location = New-Object System.Drawing.Point(10, 10)
         $refreshButton.Size = New-Object System.Drawing.Size(200, 30)
         $refreshButton.Add_Click({ $this.RunComplianceCheck() })
@@ -307,7 +307,7 @@ class Sage100GUI {
     [void]RunFullCheck() {
         Start-DebugAction -FunctionName "GUI.RunFullCheck" -Parameters @{}
         
-        $this.StatusLabel.Text = "Führe vollständige Prüfung durch..."
+        $this.StatusLabel.Text = "Fuehre vollstaendige Pruefung durch..."
         $this.ProgressBar.Value = 0
         
         try {
@@ -324,15 +324,15 @@ class Sage100GUI {
             $this.RunComplianceCheck()
             $this.ProgressBar.Value = 100
             
-            $this.StatusLabel.Text = "Vollständige Prüfung abgeschlossen"
-            [System.Windows.Forms.MessageBox]::Show("Alle Checks wurden erfolgreich durchgeführt.", "Erfolg", 
+            $this.StatusLabel.Text = "Vollstaendige Pruefung abgeschlossen"
+            [System.Windows.Forms.MessageBox]::Show("Alle Checks wurden erfolgreich durchgefuehrt.", "Erfolg", 
                 [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
             
             Complete-DebugAction -Status "Success"
         }
         catch {
             Complete-DebugAction -Status "Error" -ErrorRecord $_
-            [System.Windows.Forms.MessageBox]::Show("Fehler bei der Prüfung: $($_.Exception.Message)", "Fehler", 
+            [System.Windows.Forms.MessageBox]::Show("Fehler bei der Pruefung: $($_.Exception.Message)", "Fehler", 
                 [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
         }
         finally {
@@ -355,7 +355,7 @@ class Sage100GUI {
             $indicator = $dashboardTab.Controls.Find("SystemIndicator", $true)[0]
             
             if ($systemInfo) {
-                $statusLabel.Text = "✓ Erfolgreich geprüft"
+                $statusLabel.Text = "Erfolgreich geprueft"
                 $indicator.BackColor = [System.Drawing.Color]::Green
             }
             
@@ -375,8 +375,8 @@ class Sage100GUI {
             $textBox.AppendText("=== FESTPLATTEN ===`n")
             foreach ($disk in $systemInfo.Disks) {
                 $textBox.AppendText("`n$($disk.DeviceID)`n")
-                $textBox.AppendText("  Größe: $($disk.SizeGB) GB`n")
-                $textBox.AppendText("  Frei: $($disk.FreeSpaceGB) GB ($($disk.FreeSpacePercent)%)`n")
+                $textBox.AppendText("  Groesse: $($disk.SizeGB) GB`n")
+                $textBox.AppendText("  Frei: $($disk.FreeSpaceGB) GB ($($disk.FreeSpacePercent) Prozent)`n")
             }
             
             $this.StatusLabel.Text = "System-Check abgeschlossen"
@@ -392,7 +392,7 @@ class Sage100GUI {
     [void]RunNetworkCheck() {
         Start-DebugAction -FunctionName "GUI.RunNetworkCheck" -Parameters @{}
         
-        $this.StatusLabel.Text = "Prüfe Netzwerk & Firewall..."
+        $this.StatusLabel.Text = "Pruefe Netzwerk und Firewall..."
         
         try {
             $networkInfo = Test-NetworkConnectivity
@@ -404,7 +404,7 @@ class Sage100GUI {
             $indicator = $dashboardTab.Controls.Find("NetworkIndicator", $true)[0]
             
             if ($networkInfo) {
-                $statusLabel.Text = "✓ Erfolgreich geprüft"
+                $statusLabel.Text = "Erfolgreich geprueft"
                 $indicator.BackColor = [System.Drawing.Color]::Green
             }
             
@@ -422,9 +422,9 @@ class Sage100GUI {
                 $textBox.AppendText("  DNS: $($adapter.DNSServers -join ', ')`n`n")
             }
             
-            $textBox.AppendText("`n=== KONNEKTIVITÄTS-TESTS ===`n")
+            $textBox.AppendText("`n=== KONNEKTIVITAETS-TESTS ===`n")
             foreach ($test in $networkInfo.ConnectivityTests) {
-                $status = if ($test.Success) { "✓" } else { "✗" }
+                $status = if ($test.Success) { "OK" } else { "FEHLER" }
                 $textBox.AppendText("$status $($test.Target):$($test.Port) - $($test.ResponseTime)ms`n")
             }
             
@@ -441,7 +441,7 @@ class Sage100GUI {
     [void]RunComplianceCheck() {
         Start-DebugAction -FunctionName "GUI.RunComplianceCheck" -Parameters @{}
         
-        $this.StatusLabel.Text = "Prüfe Sage 100 Voraussetzungen..."
+        $this.StatusLabel.Text = "Pruefe Sage 100 Voraussetzungen..."
         
         try {
             $complianceInfo = Test-Sage100Compliance
@@ -455,7 +455,7 @@ class Sage100GUI {
             $passedCount = ($complianceInfo.Checks | Where-Object { $_.Status -eq "Pass" }).Count
             $totalCount = $complianceInfo.Checks.Count
             
-            $statusLabel.Text = "✓ $passedCount/$totalCount Tests bestanden"
+            $statusLabel.Text = "$passedCount/$totalCount Tests bestanden"
             
             if ($passedCount -eq $totalCount) {
                 $indicator.BackColor = [System.Drawing.Color]::Green
@@ -477,9 +477,9 @@ class Sage100GUI {
             
             foreach ($check in $complianceInfo.Checks) {
                 $icon = switch ($check.Status) {
-                    "Pass" { "✓" }
-                    "Fail" { "✗" }
-                    "Warning" { "⚠" }
+                    "Pass" { "OK" }
+                    "Fail" { "FEHLER" }
+                    "Warning" { "WARNUNG" }
                     default { "?" }
                 }
                 
@@ -509,7 +509,7 @@ class Sage100GUI {
         
         $summary = Get-DebugLogSummary
         
-        $textBox.AppendText("=== DEBUG-LOG ÜBERSICHT ===`n`n")
+        $textBox.AppendText("=== DEBUG-LOG UEBERSICHT ===`n`n")
         $textBox.AppendText("Session-ID: $($summary.SessionId)`n")
         $textBox.AppendText("Start: $($summary.StartTime)`n")
         $textBox.AppendText("Laufzeit: $([Math]::Round($summary.TotalDurationSeconds, 2))s`n`n")
@@ -620,18 +620,18 @@ class Sage100GUI {
 Sage 100 Server Check & Setup Tool
 Version 2.0
 
-Entwickelt für die Überprüfung von Sage 100 Server-Voraussetzungen.
+Entwickelt fuer die Ueberpruefung von Sage 100 Server-Voraussetzungen.
 
 Features:
 • System-Informationen sammeln
-• Netzwerk & Firewall prüfen
+• Netzwerk und Firewall pruefen
 • Compliance-Check (Sage 100 Requirements)
 • Debug-Logging
 • Export (Markdown, JSON)
 
 © 2026 Marcel Jung
 "@
-        [System.Windows.Forms.MessageBox]::Show($aboutText, "Über Sage 100 Server Check", 
+        [System.Windows.Forms.MessageBox]::Show($aboutText, "Ueber Sage 100 Server Check", 
             [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
     }
     
