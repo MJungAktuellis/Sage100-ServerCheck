@@ -15,10 +15,10 @@ param(
 )
 
 # Banner
-Write-Host "`n========================================="
+Write-Host "`n========================================"
 Write-Host "   Sage 100 Server Check & Setup Tool"
 Write-Host "             GUI Version 2.0"
-Write-Host "=========================================`n"
+Write-Host "========================================`n"
 
 # Check PowerShell Version
 if ($PSVersionTable.PSVersion.Major -lt 5) {
@@ -92,19 +92,21 @@ try {
     $gui = [MainWindow]::new()
     
     # WICHTIG: Event-Handler HIER registrieren (AUSSERHALB der Klasse)
-    # um ScriptBlock-Scope-Probleme zu vermeiden
+    # mit GetNewClosure() um ScriptBlock-Scope-Probleme zu vermeiden
+    $windowRef = $gui  # Lokale Referenz für Closure
+    
     $gui.StartButton.Add_Click({
         try {
-            $gui.RunFullCheck()
+            $windowRef.RunFullCheck()
         } catch {
             [System.Windows.Forms.MessageBox]::Show(
-                "Fehler beim Ausfuehren der Pruefung: $($_.Exception.Message)",
+                "Fehler beim Ausfuehren der Pruefung: $($_.Exception.Message)`n`nDetails: $($_.ScriptStackTrace)",
                 "Fehler",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
             )
         }
-    })
+    }.GetNewClosure())  # <- WICHTIG: GetNewClosure() für korrekte Variable-Binding
     
     # Show the GUI
     [void]$gui.Show()
