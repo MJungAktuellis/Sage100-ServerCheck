@@ -45,45 +45,39 @@ class MainWindow {
         $mainContainer.Dock = "Fill"
         $this.Form.Controls.Add($mainContainer)
 
-        # Header Panel - REDUZIERT auf 60px Hoehe
+        # Header Panel - KOMPAKT 50px
         $headerPanel = New-Object System.Windows.Forms.Panel
         $headerPanel.Dock = "Top"
-        $headerPanel.Height = 60
+        $headerPanel.Height = 50
         $headerPanel.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
         $mainContainer.Controls.Add($headerPanel)
 
-        # Title
+        # Title - KOMPAKT
         $titleLabel = New-Object System.Windows.Forms.Label
-        $titleLabel.Text = "Sage 100 Server Check & Setup Tool"
-        $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+        $titleLabel.Text = "Sage 100 Server Check Tool"
+        $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
         $titleLabel.ForeColor = [System.Drawing.Color]::White
-        $titleLabel.Location = New-Object System.Drawing.Point(15, 10)
+        $titleLabel.Location = New-Object System.Drawing.Point(10, 12)
         $titleLabel.AutoSize = $true
         $headerPanel.Controls.Add($titleLabel)
 
-        # Untertitel
-        $subtitleLabel = New-Object System.Windows.Forms.Label
-        $subtitleLabel.Text = "Automatische Systempruefung und Compliance-Check"
-        $subtitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-        $subtitleLabel.ForeColor = [System.Drawing.Color]::White
-        $subtitleLabel.Location = New-Object System.Drawing.Point(15, 35)
-        $subtitleLabel.AutoSize = $true
-        $headerPanel.Controls.Add($subtitleLabel)
-
-        # Start Button - KOMPAKT
+        # Start Button - RECHTS IM HEADER
         $this.StartButton = New-Object System.Windows.Forms.Button
         $this.StartButton.Text = "> Vollstaendige Pruefung starten"
-        $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-        $this.StartButton.Size = New-Object System.Drawing.Size(270, 40)
-        $this.StartButton.Location = New-Object System.Drawing.Point(900, 10)
+        $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+        $this.StartButton.Size = New-Object System.Drawing.Size(240, 35)
+        $this.StartButton.Anchor = "Top,Right"
+        $this.StartButton.Location = New-Object System.Drawing.Point(($headerPanel.Width - 250), 8)
         $this.StartButton.BackColor = [System.Drawing.Color]::FromArgb(0, 200, 0)
         $this.StartButton.ForeColor = [System.Drawing.Color]::White
         $this.StartButton.FlatStyle = "Flat"
         $this.StartButton.Cursor = [System.Windows.Forms.Cursors]::Hand
         $headerPanel.Controls.Add($this.StartButton)
         
-        # HINWEIS: Event-Handler wird NICHT hier registriert!
-        # Wird in Sage100-ServerCheck-GUI.ps1 mit GetNewClosure() registriert
+        # WICHTIG: Button bleibt rechts beim Resize
+        $headerPanel.Add_Resize({
+            $this.StartButton.Location = New-Object System.Drawing.Point(($headerPanel.Width - 250), 8)
+        })
 
         # TabControl
         $this.TabControl = New-Object System.Windows.Forms.TabControl
