@@ -15,10 +15,10 @@ param(
 )
 
 # Banner
-Write-Host "`n========================================"
+Write-Host "`n========================================="
 Write-Host "   Sage 100 Server Check & Setup Tool"
-Write-Host "            GUI Version 2.0"
-Write-Host "========================================`n"
+Write-Host "             GUI Version 2.0"
+Write-Host "=========================================`n"
 
 # Check PowerShell Version
 if ($PSVersionTable.PSVersion.Major -lt 5) {
@@ -88,8 +88,25 @@ try {
     # Dot-source the GUI file to load the class
     . $guiPath
     
-    # Create and show the GUI
+    # Create the GUI instance
     $gui = [MainWindow]::new()
+    
+    # WICHTIG: Event-Handler HIER registrieren (AUSSERHALB der Klasse)
+    # um ScriptBlock-Scope-Probleme zu vermeiden
+    $gui.StartButton.Add_Click({
+        try {
+            $gui.RunFullCheck()
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show(
+                "Fehler beim Ausfuehren der Pruefung: $($_.Exception.Message)",
+                "Fehler",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            )
+        }
+    })
+    
+    # Show the GUI
     [void]$gui.Show()
     
 } catch {
