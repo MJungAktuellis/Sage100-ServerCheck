@@ -4,15 +4,20 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# ===================================
+# =========================================
 # GUI-Klasse Definition
-# ===================================
+# =========================================
 class MainWindow {
     [System.Windows.Forms.Form]$Form
     [System.Windows.Forms.TabControl]$TabControl
     [System.Windows.Forms.ProgressBar]$ProgressBar
     [System.Windows.Forms.Label]$StatusLabel
     [System.Windows.Forms.Button]$StartButton
+    [System.Windows.Forms.TextBox]$SystemInfoBox
+    [System.Windows.Forms.TextBox]$NetworkInfoBox
+    [System.Windows.Forms.TextBox]$ComplianceInfoBox
+    [System.Windows.Forms.TextBox]$LogsBox
+    [System.Windows.Forms.TextBox]$ResultBox
     [hashtable]$CheckResults = @{}
     
     # Konstruktor
@@ -153,15 +158,15 @@ class MainWindow {
         $tab.Controls.Add($this.StartButton)
         
         # Ergebnis-Textbox
-        $resultBox = New-Object System.Windows.Forms.TextBox
-        $resultBox.Multiline = $true
-        $resultBox.ScrollBars = "Vertical"
-        $resultBox.Location = New-Object System.Drawing.Point(20, 310)
-        $resultBox.Size = New-Object System.Drawing.Size(900, 200)
-        $resultBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-        $resultBox.ReadOnly = $true
-        $resultBox.Name = "ResultBox"
-        $tab.Controls.Add($resultBox)
+        $this.ResultBox = New-Object System.Windows.Forms.TextBox
+        $this.ResultBox.Multiline = $true
+        $this.ResultBox.ScrollBars = "Vertical"
+        $this.ResultBox.Location = New-Object System.Drawing.Point(20, 310)
+        $this.ResultBox.Size = New-Object System.Drawing.Size(900, 200)
+        $this.ResultBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+        $this.ResultBox.ReadOnly = $true
+        $this.ResultBox.Name = "ResultBox"
+        $tab.Controls.Add($this.ResultBox)
         
         $this.TabControl.TabPages.Add($tab)
     }
@@ -204,14 +209,14 @@ class MainWindow {
         $tab = New-Object System.Windows.Forms.TabPage
         $tab.Text = "System-Info"
         
-        $textBox = New-Object System.Windows.Forms.TextBox
-        $textBox.Multiline = $true
-        $textBox.ScrollBars = "Vertical"
-        $textBox.Dock = "Fill"
-        $textBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-        $textBox.ReadOnly = $true
-        $textBox.Name = "SystemInfoBox"
-        $tab.Controls.Add($textBox)
+        $this.SystemInfoBox = New-Object System.Windows.Forms.TextBox
+        $this.SystemInfoBox.Multiline = $true
+        $this.SystemInfoBox.ScrollBars = "Vertical"
+        $this.SystemInfoBox.Dock = "Fill"
+        $this.SystemInfoBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+        $this.SystemInfoBox.ReadOnly = $true
+        $this.SystemInfoBox.Name = "SystemInfoBox"
+        $tab.Controls.Add($this.SystemInfoBox)
         
         $this.TabControl.TabPages.Add($tab)
     }
@@ -221,14 +226,14 @@ class MainWindow {
         $tab = New-Object System.Windows.Forms.TabPage
         $tab.Text = "Netzwerk"
         
-        $textBox = New-Object System.Windows.Forms.TextBox
-        $textBox.Multiline = $true
-        $textBox.ScrollBars = "Vertical"
-        $textBox.Dock = "Fill"
-        $textBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-        $textBox.ReadOnly = $true
-        $textBox.Name = "NetworkInfoBox"
-        $tab.Controls.Add($textBox)
+        $this.NetworkInfoBox = New-Object System.Windows.Forms.TextBox
+        $this.NetworkInfoBox.Multiline = $true
+        $this.NetworkInfoBox.ScrollBars = "Vertical"
+        $this.NetworkInfoBox.Dock = "Fill"
+        $this.NetworkInfoBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+        $this.NetworkInfoBox.ReadOnly = $true
+        $this.NetworkInfoBox.Name = "NetworkInfoBox"
+        $tab.Controls.Add($this.NetworkInfoBox)
         
         $this.TabControl.TabPages.Add($tab)
     }
@@ -238,14 +243,14 @@ class MainWindow {
         $tab = New-Object System.Windows.Forms.TabPage
         $tab.Text = "Compliance"
         
-        $textBox = New-Object System.Windows.Forms.TextBox
-        $textBox.Multiline = $true
-        $textBox.ScrollBars = "Vertical"
-        $textBox.Dock = "Fill"
-        $textBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-        $textBox.ReadOnly = $true
-        $textBox.Name = "ComplianceInfoBox"
-        $tab.Controls.Add($textBox)
+        $this.ComplianceInfoBox = New-Object System.Windows.Forms.TextBox
+        $this.ComplianceInfoBox.Multiline = $true
+        $this.ComplianceInfoBox.ScrollBars = "Vertical"
+        $this.ComplianceInfoBox.Dock = "Fill"
+        $this.ComplianceInfoBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+        $this.ComplianceInfoBox.ReadOnly = $true
+        $this.ComplianceInfoBox.Name = "ComplianceInfoBox"
+        $tab.Controls.Add($this.ComplianceInfoBox)
         
         $this.TabControl.TabPages.Add($tab)
     }
@@ -255,14 +260,14 @@ class MainWindow {
         $tab = New-Object System.Windows.Forms.TabPage
         $tab.Text = "Debug-Logs"
         
-        $textBox = New-Object System.Windows.Forms.TextBox
-        $textBox.Multiline = $true
-        $textBox.ScrollBars = "Vertical"
-        $textBox.Dock = "Fill"
-        $textBox.Font = New-Object System.Drawing.Font("Consolas", 8)
-        $textBox.ReadOnly = $true
-        $textBox.Name = "LogsBox"
-        $tab.Controls.Add($textBox)
+        $this.LogsBox = New-Object System.Windows.Forms.TextBox
+        $this.LogsBox.Multiline = $true
+        $this.LogsBox.ScrollBars = "Vertical"
+        $this.LogsBox.Dock = "Fill"
+        $this.LogsBox.Font = New-Object System.Drawing.Font("Consolas", 8)
+        $this.LogsBox.ReadOnly = $true
+        $this.LogsBox.Name = "LogsBox"
+        $tab.Controls.Add($this.LogsBox)
         
         $this.TabControl.TabPages.Add($tab)
     }
@@ -302,7 +307,7 @@ class MainWindow {
             $this.ProgressBar.Value = 40
             $this.Form.Refresh()
             
-            # Network-Check
+            # Netzwerk-Check
             $this.StatusLabel.Text = "Pruefe Netzwerk..."
             
             if (Get-Command -Name "Test-NetworkConfiguration" -ErrorAction SilentlyContinue) {
@@ -354,12 +359,10 @@ class MainWindow {
                 [System.Windows.Forms.MessageBoxIcon]::Error
             )
             
-            # Fehler auch in Logs-Tab schreiben
-            $logsTab = $this.TabControl.TabPages[4]
-            $logsBox = $logsTab.Controls["LogsBox"]
-            if ($logsBox) {
-                $logsBox.AppendText("=== FEHLER ===`r`n")
-                $logsBox.AppendText("$errorMsg`r`n`r`n")
+            # Fehler AUCH in Logs-Tab schreiben - DIREKT über Klasseneigenschaft
+            if ($this.LogsBox) {
+                $this.LogsBox.AppendText("=== FEHLER ===`r`n")
+                $this.LogsBox.AppendText("$errorMsg`r`n`r`n")
             }
         }
     }
@@ -385,94 +388,85 @@ class MainWindow {
     
     # System-Tab aktualisieren
     [void] UpdateSystemTab($systemInfo) {
-        $tab = $this.TabControl.TabPages[1]
-        $textBox = $tab.Controls["SystemInfoBox"]
-        
-        $textBox.Clear()
-        $textBox.AppendText("=== SYSTEM-INFORMATIONEN ===`r`n`r`n")
-        $textBox.AppendText("Computer: $($systemInfo.ComputerName)`r`n")
-        $textBox.AppendText("OS: $($systemInfo.OSName) ($($systemInfo.OSVersion))`r`n")
-        $textBox.AppendText("CPU: $($systemInfo.CPU)`r`n")
-        $textBox.AppendText("RAM: $($systemInfo.TotalRAM_GB) GB`r`n")
-        $textBox.AppendText("`r`n=== FESTPLATTEN ===`r`n")
+        $this.SystemInfoBox.Clear()
+        $this.SystemInfoBox.AppendText("=== SYSTEM-INFORMATIONEN ===`r`n`r`n")
+        $this.SystemInfoBox.AppendText("Computer: $($systemInfo.ComputerName)`r`n")
+        $this.SystemInfoBox.AppendText("OS: $($systemInfo.OSName) ($($systemInfo.OSVersion))`r`n")
+        $this.SystemInfoBox.AppendText("CPU: $($systemInfo.CPU)`r`n")
+        $this.SystemInfoBox.AppendText("RAM: $($systemInfo.TotalRAM_GB) GB`r`n")
+        $this.SystemInfoBox.AppendText("`r`n=== FESTPLATTEN ===`r`n")
         
         foreach ($disk in $systemInfo.Disks) {
-            $textBox.AppendText("`r`nLaufwerk $($disk.Drive):`r`n")
-            $textBox.AppendText("  Gesamt: $($disk.TotalSpaceGB) GB`r`n")
-            $textBox.AppendText("  Frei: $($disk.FreeSpaceGB) GB ($($disk.FreeSpacePercent) Prozent)`r`n")
+            $this.SystemInfoBox.AppendText("`r`nLaufwerk $($disk.Drive):`r`n")
+            $this.SystemInfoBox.AppendText("  Gesamt: $($disk.TotalSpaceGB) GB`r`n")
+            $this.SystemInfoBox.AppendText("  Frei: $($disk.FreeSpaceGB) GB ($($disk.FreeSpacePercent) Prozent)`r`n")
         }
         
-        $textBox.AppendText("`r`n.NET Framework: $($systemInfo.DotNetVersion)`r`n")
-        $textBox.AppendText("PowerShell: $($systemInfo.PowerShellVersion)`r`n")
+        $this.SystemInfoBox.AppendText("`r`n.NET Framework: $($systemInfo.DotNetVersion)`r`n")
+        $this.SystemInfoBox.AppendText("PowerShell: $($systemInfo.PowerShellVersion)`r`n")
     }
     
     # Netzwerk-Tab aktualisieren
     [void] UpdateNetworkTab($networkInfo) {
-        $tab = $this.TabControl.TabPages[2]
-        $textBox = $tab.Controls["NetworkInfoBox"]
-        
-        $textBox.Clear()
-        $textBox.AppendText("=== NETZWERK-ADAPTER ===`r`n`r`n")
+        $this.NetworkInfoBox.Clear()
+        $this.NetworkInfoBox.AppendText("=== NETZWERK-ADAPTER ===`r`n`r`n")
         
         foreach ($adapter in $networkInfo.Adapters) {
-            $textBox.AppendText("$($adapter.Name):`r`n")
-            $textBox.AppendText("  IP: $($adapter.IPAddress)`r`n")
-            $textBox.AppendText("  Speed: $($adapter.Speed)`r`n`r`n")
+            $this.NetworkInfoBox.AppendText("$($adapter.Name):`r`n")
+            $this.NetworkInfoBox.AppendText("  IP: $($adapter.IPAddress)`r`n")
+            $this.NetworkInfoBox.AppendText("  Speed: $($adapter.Speed)`r`n`r`n")
         }
         
-        $textBox.AppendText("`r`n=== PORT-STATUS ===`r`n`r`n")
+        $this.NetworkInfoBox.AppendText("`r`n=== PORT-STATUS ===`r`n`r`n")
         
         foreach ($port in $networkInfo.Ports) {
             $status = if ($port.IsOpen) { "OFFEN" } else { "GESCHLOSSEN" }
-            $textBox.AppendText("Port $($port.Port) ($($port.Service)): $status`r`n")
+            $this.NetworkInfoBox.AppendText("Port $($port.Port) ($($port.Service)): $status`r`n")
         }
         
-        $textBox.AppendText("`r`n=== FIREWALL ===`r`n`r`n")
-        $textBox.AppendText("Domain-Profil: $($networkInfo.Firewall.DomainProfile)`r`n")
-        $textBox.AppendText("Private-Profil: $($networkInfo.Firewall.PrivateProfile)`r`n")
-        $textBox.AppendText("Public-Profil: $($networkInfo.Firewall.PublicProfile)`r`n")
+        $this.NetworkInfoBox.AppendText("`r`n=== FIREWALL ===`r`n`r`n")
+        $this.NetworkInfoBox.AppendText("Domain-Profil: $($networkInfo.Firewall.DomainProfile)`r`n")
+        $this.NetworkInfoBox.AppendText("Private-Profil: $($networkInfo.Firewall.PrivateProfile)`r`n")
+        $this.NetworkInfoBox.AppendText("Public-Profil: $($networkInfo.Firewall.PublicProfile)`r`n")
     }
     
     # Compliance-Tab aktualisieren
     [void] UpdateComplianceTab($complianceInfo) {
-        $tab = $this.TabControl.TabPages[3]
-        $textBox = $tab.Controls["ComplianceInfoBox"]
+        $this.ComplianceInfoBox.Clear()
+        $this.ComplianceInfoBox.AppendText("=== SAGE 100 COMPLIANCE-CHECK ===`r`n`r`n")
         
-        $textBox.Clear()
-        $textBox.AppendText("=== SAGE 100 COMPLIANCE-CHECK ===`r`n`r`n")
-        
-        $textBox.AppendText("Betriebssystem: ")
+        $this.ComplianceInfoBox.AppendText("Betriebssystem: ")
         if ($complianceInfo.OSCompliant) {
-            $textBox.AppendText("OK`r`n")
+            $this.ComplianceInfoBox.AppendText("OK`r`n")
         } else {
-            $textBox.AppendText("FEHLER - Nicht unterstuetzt`r`n")
+            $this.ComplianceInfoBox.AppendText("FEHLER - Nicht unterstuetzt`r`n")
         }
         
-        $textBox.AppendText("`r`nRAM: $($complianceInfo.RAM_GB) GB ")
+        $this.ComplianceInfoBox.AppendText("`r`nRAM: $($complianceInfo.RAM_GB) GB ")
         if ($complianceInfo.RAM_GB -ge 8) {
-            $textBox.AppendText("(OK)`r`n")
+            $this.ComplianceInfoBox.AppendText("(OK)`r`n")
         } else {
-            $textBox.AppendText("(WARNUNG - Mindestens 8 GB empfohlen)`r`n")
+            $this.ComplianceInfoBox.AppendText("(WARNUNG - Mindestens 8 GB empfohlen)`r`n")
         }
         
-        $textBox.AppendText("`r`n.NET Framework: $($complianceInfo.DotNetVersion) ")
+        $this.ComplianceInfoBox.AppendText("`r`n.NET Framework: $($complianceInfo.DotNetVersion) ")
         if ($complianceInfo.DotNetCompliant) {
-            $textBox.AppendText("(OK)`r`n")
+            $this.ComplianceInfoBox.AppendText("(OK)`r`n")
         } else {
-            $textBox.AppendText("(FEHLER - Mindestens 4.7.2 erforderlich)`r`n")
+            $this.ComplianceInfoBox.AppendText("(FEHLER - Mindestens 4.7.2 erforderlich)`r`n")
         }
         
         if ($complianceInfo.Errors.Count -gt 0) {
-            $textBox.AppendText("`r`n=== FEHLER ===`r`n")
+            $this.ComplianceInfoBox.AppendText("`r`n=== FEHLER ===`r`n")
             foreach ($error in $complianceInfo.Errors) {
-                $textBox.AppendText("  - $error`r`n")
+                $this.ComplianceInfoBox.AppendText("  - $error`r`n")
             }
         }
         
         if ($complianceInfo.Warnings.Count -gt 0) {
-            $textBox.AppendText("`r`n=== WARNUNGEN ===`r`n")
+            $this.ComplianceInfoBox.AppendText("`r`n=== WARNUNGEN ===`r`n")
             foreach ($warning in $complianceInfo.Warnings) {
-                $textBox.AppendText("  - $warning`r`n")
+                $this.ComplianceInfoBox.AppendText("  - $warning`r`n")
             }
         }
     }
