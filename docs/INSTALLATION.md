@@ -1,566 +1,449 @@
-# 📦 Sage100-ServerCheck - Installationsanleitung
+# 📘 Installationsanleitung - Sage100-ServerCheck
 
-> **Version:** 2.0  
-> **Autor:** DevOps Team  
-> **Datum:** 2026-02-09  
-> **Status:** ✅ Produktionsreif
+## 🎯 Übersicht
 
----
-
-## 📋 Inhaltsverzeichnis
-
-1. [Systemvoraussetzungen](#-systemvoraussetzungen)
-2. [Schnellinstallation (Empfohlen)](#-schnellinstallation-empfohlen)
-3. [Manuelle Installation](#-manuelle-installation)
-4. [Konfiguration](#-konfiguration)
-5. [Erste Schritte](#-erste-schritte)
-6. [Automatisierung (Scheduled Task)](#-automatisierung-scheduled-task)
-7. [Deinstallation](#-deinstallation)
-8. [Troubleshooting](#-troubleshooting)
+Diese Anleitung führt dich Schritt für Schritt durch die Installation und den ersten Start des **Sage100-ServerCheck** Tools.
 
 ---
 
-## 🔧 Systemvoraussetzungen
+## ⚙️ Systemvoraussetzungen
 
-### Betriebssystem
-- ✅ Windows Server 2016 oder höher
-- ✅ Windows 10/11 Pro/Enterprise
+### Minimale Anforderungen:
 
-### Software-Komponenten
-| Komponente | Minimum | Empfohlen |
-|------------|---------|-----------|
-| **PowerShell** | 5.1 | 7.4+ |
-| **SQL Server** | 2014 | 2019/2022 |
-| **.NET Framework** | 4.7.2 | 4.8 |
-| **Arbeitsspeicher** | 4 GB | 8 GB+ |
-| **Festplatte** | 100 MB frei | 1 GB+ |
+| Komponente | Anforderung |
+|------------|-------------|
+| **Betriebssystem** | Windows Server 2012 R2 oder neuer / Windows 10/11 |
+| **PowerShell** | Version 5.1 oder höher |
+| **Benutzerrechte** | Administrator-Rechte erforderlich |
+| **.NET Framework** | Version 4.7.2 oder höher |
+| **Festplattenspeicher** | Mindestens 50 MB frei |
 
-### Berechtigungen
-- 🔐 **Administrator-Rechte** auf dem Server
-- 🔐 **SQL Server sysadmin** oder **db_datareader** für Sage-Datenbanken
-- 🔐 **Lesezugriff** auf Windows Event Log
+### Empfohlene Konfiguration:
 
-### Netzwerk
-- 📡 Port **1433** (SQL Server) erreichbar
-- 📡 SMTP-Server (optional, für E-Mail-Benachrichtigungen)
+- Windows Server 2019/2022
+- PowerShell 7.x
+- 4 GB RAM
+- SQL Server Management Tools (optional, für erweiterte DB-Checks)
 
 ---
 
-## ⚡ Schnellinstallation (Empfohlen)
+## 📦 Installation
 
-### Schritt 1: Repository herunterladen
+### Methode 1: Automatische Installation (Empfohlen)
 
-**Option A: Git Clone (empfohlen)**
+#### Schritt 1: Repository klonen oder herunterladen
+
+**Option A: Mit Git**
 ```powershell
-# In PowerShell als Administrator:
-cd C:\
 git clone https://github.com/MJungAktuellis/Sage100-ServerCheck.git
 cd Sage100-ServerCheck
 ```
 
 **Option B: ZIP-Download**
-1. Öffne https://github.com/MJungAktuellis/Sage100-ServerCheck
+1. Gehe zu https://github.com/MJungAktuellis/Sage100-ServerCheck
 2. Klicke auf **Code** → **Download ZIP**
-3. Entpacke nach `C:\Sage100-ServerCheck\`
+3. Entpacke die ZIP-Datei in ein Verzeichnis deiner Wahl (z.B. `C:\Tools\Sage100-ServerCheck`)
 
----
+#### Schritt 2: Voraussetzungen prüfen
 
-### Schritt 2: Installation ausführen
+Öffne PowerShell **als Administrator** und führe aus:
 
-**🚀 ONE-CLICK-INSTALLATION:**
-
-1. **Rechtsklick** auf `EASY-INSTALL.cmd`
-2. Wähle **"Als Administrator ausführen"**
-
-![EASY-INSTALL Kontextmenü](https://via.placeholder.com/600x150/0078D4/FFFFFF?text=Rechtsklick+%3E+Als+Administrator+ausf%C3%BChren)
-
-3. Das Installationsfenster öffnet sich automatisch:
-
-```
-╔════════════════════════════════════════════════════════════╗
-║         SAGE100-SERVERCHECK INSTALLATION v2.0              ║
-╠════════════════════════════════════════════════════════════╣
-║ [✓] Administrator-Rechte erkannt                           ║
-║ [✓] PowerShell 5.1 gefunden                                ║
-║ [✓] .NET Framework 4.8 vorhanden                           ║
-║ [ ] Module werden installiert...                           ║
-╚════════════════════════════════════════════════════════════╝
-```
-
-4. **Warten**, bis folgende Meldung erscheint:
-```
-✅ Installation erfolgreich abgeschlossen!
-
-📁 Installiert in: C:\Program Files\Sage100-ServerCheck
-🖥️  Desktop-Verknüpfung erstellt
-⏰ Scheduled Task "Sage100-DailyCheck" konfiguriert
-
-Drücken Sie eine beliebige Taste zum Beenden...
-```
-
----
-
-## 🛠️ Manuelle Installation
-
-Falls die automatische Installation fehlschlägt, folge diesen Schritten:
-
-### Schritt 1: PowerShell Execution Policy anpassen
 ```powershell
-# Als Administrator ausführen:
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-```
-
-### Schritt 2: Installationsskript ausführen
-```powershell
-cd C:\Sage100-ServerCheck
-.\Install.ps1 -Verbose
-```
-
-### Schritt 3: Module manuell importieren
-```powershell
-# Prüfen, ob alle Module geladen werden können:
-Import-Module .\Modules\DebugLogger.psm1 -Force
-Import-Module .\Modules\SystemCheck.psm1 -Force
-Import-Module .\Modules\NetworkCheck.psm1 -Force
-Import-Module .\Modules\ComplianceCheck.psm1 -Force
-Import-Module .\Modules\WorkLog.psm1 -Force
-Import-Module .\Modules\ReportGenerator.psm1 -Force
+cd C:\Tools\Sage100-ServerCheck
+.\Tests\Test-Prerequisites.ps1
 ```
 
 **Erwartete Ausgabe:**
 ```
-ModuleType Version    Name
----------- -------    ----
-Script     2.0        DebugLogger
-Script     2.0        SystemCheck
-Script     2.0        NetworkCheck
-...
+✅ PowerShell-Version: 5.1.19041.4894 (OK)
+✅ .NET Framework: 4.8 (OK)
+✅ Administrator-Rechte: Ja
+✅ Alle Module gefunden: 6/6
+✅ Konfigurationsdatei: Vorhanden
+
+SYSTEM BEREIT FÜR INSTALLATION
+```
+
+#### Schritt 3: Installation ausführen
+
+**Starte den Installer:**
+
+```cmd
+EASY-INSTALL-v2.cmd
+```
+
+Der Installer führt automatisch folgende Schritte aus:
+1. ✅ Prüfung der Admin-Rechte
+2. ✅ Validierung der PowerShell-Version
+3. ✅ Import aller benötigten Module
+4. ✅ Konfigurationsprüfung
+5. ✅ Erstellen der Arbeitsverzeichnisse
+
+**Erfolgreiche Installation:**
+```
+===========================================
+  SAGE100-SERVERCHECK INSTALLATION
+===========================================
+✓ Admin-Rechte: OK
+✓ PowerShell 5.1: OK
+✓ Module importiert: 6/6
+✓ Konfiguration geladen: OK
+
+Installation abgeschlossen!
+
+Starten Sie das Tool mit:
+  .\src\Sage100-ServerCheck.ps1
 ```
 
 ---
 
-## ⚙️ Konfiguration
+### Methode 2: Manuelle Installation
 
-### Config-Datei bearbeiten
+Falls der automatische Installer nicht funktioniert:
 
-Öffne `Config\config.json` in einem Texteditor:
+#### 1. Ordnerstruktur validieren
 
-```json
-{
-  "SqlServer": {
-    "ServerName": "DEIN-SQL-SERVER\\SAGE",
-    "InstanceName": "SAGE",
-    "Databases": [
-      "Mandant001",
-      "Mandant002"
-    ],
-    "ConnectionTimeout": 15
-  },
-  "Monitoring": {
-    "CheckInterval": 300,
-    "EnableEmailAlerts": true,
-    "EmailRecipients": [
-      "admin@deinefirma.de",
-      "it-support@deinefirma.de"
-    ]
-  },
-  "SMTP": {
-    "Server": "smtp.office365.com",
-    "Port": 587,
-    "UseSsl": true,
-    "From": "sage-monitoring@deinefirma.de",
-    "Username": "sage-monitoring@deinefirma.de",
-    "PasswordSecure": ""
-  },
-  "Logging": {
-    "Level": "Info",
-    "Path": "C:\\Logs\\Sage100-ServerCheck",
-    "MaxFileSizeMB": 50,
-    "RetentionDays": 30
-  },
-  "Services": [
-    "MSSQL$SAGE",
-    "OAServer",
-    "SageApplicationServer"
-  ],
-  "Performance": {
-    "CpuThreshold": 80,
-    "MemoryThreshold": 85,
-    "DiskSpaceThreshold": 90
-  }
+Stelle sicher, dass folgende Struktur vorhanden ist:
+
+```
+Sage100-ServerCheck/
+├── src/
+│   └── Sage100-ServerCheck.ps1
+├── Modules/
+│   ├── DebugLogger.psm1
+│   ├── SystemCheck.psm1
+│   ├── NetworkCheck.psm1
+│   ├── ComplianceCheck.psm1
+│   ├── WorkLog.psm1
+│   └── ReportGenerator.psm1
+├── Config/
+│   └── config.json
+├── Tests/
+│   └── Test-Prerequisites.ps1
+└── docs/
+```
+
+#### 2. ExecutionPolicy anpassen
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+#### 3. Module manuell importieren
+
+```powershell
+$ModulePath = "C:\Tools\Sage100-ServerCheck\Modules"
+Get-ChildItem "$ModulePath\*.psm1" | ForEach-Object {
+    Import-Module $_.FullName -Force
 }
 ```
 
-### 🔐 SMTP-Passwort verschlüsseln
+#### 4. Konfiguration prüfen
 
 ```powershell
-# Passwort sicher speichern:
-$SmtpPassword = Read-Host "SMTP-Passwort eingeben" -AsSecureString
-$SmtpPassword | ConvertFrom-SecureString | Out-File "Config\smtp_password.txt"
-```
-
-Dann in `config.json` anpassen:
-```json
-"PasswordSecure": "01000000d08c9ddf011..."
+$Config = Get-Content ".\Config\config.json" -Encoding UTF8 -Raw | ConvertFrom-Json
+$Config
 ```
 
 ---
 
-## 🚀 Erste Schritte
+## 🚀 Erster Start
 
-### Test 1: Grundfunktionen prüfen
+### Start des Hauptprogramms
 
 ```powershell
-# Schnelltest (ohne Admin-Rechte):
-.\Sage100-ServerCheck.ps1 -QuickScan
+cd C:\Tools\Sage100-ServerCheck
+.\src\Sage100-ServerCheck.ps1
+```
 
-# Erwartete Ausgabe:
-# ✅ SQL Server erreichbar
-# ✅ Datenbanken online
-# ⚠️  Dienst "OAServer" gestoppt
-# ✅ Festplatte: 45% belegt
+### Erwartete Ausgabe - Banner
+
+```
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║        SAGE 100 - SERVER HEALTH CHECK TOOL                ║
+║                    Version 2.1.0                          ║
+║                                                            ║
+║  Entwickelt für: Sage 100 Server-Infrastruktur           ║
+║  Lizenz: MIT                                               ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+### Hauptmenü
+
+```
+===========================================
+  HAUPTMENÜ - SAGE100 SERVERCHECK
+===========================================
+
+1. 🔍 Schnell-Scan (Quick Check)
+2. 🛠️  Vollständiger System-Check
+3. 🌐 Netzwerk-Diagnose
+4. 📊 Compliance-Prüfung
+5. 📁 Report generieren
+6. ⚙️  Einstellungen
+7. 📜 Work-Log anzeigen
+8. ❌ Beenden
+
+Wähle eine Option (1-8):
+```
+
+---
+
+## ✅ Funktionstest
+
+### Test 1: Schnell-Scan
+
+Wähle Option **1** im Hauptmenü:
+
+```
+Starte Schnell-Scan...
+✓ CPU-Auslastung: 23% (OK)
+✓ RAM-Verfügbar: 8.2 GB (OK)
+✓ Festplatte C:\ : 45% belegt (OK)
+✓ Sage100-Dienste: 4/4 laufen
+
+Schnell-Scan abgeschlossen - Keine Probleme erkannt.
 ```
 
 ### Test 2: Vollständiger Check
 
-```powershell
-# Vollständiger Check (benötigt Admin-Rechte):
-.\Sage100-ServerCheck.ps1 -FullCheck -Verbose
+Wähle Option **2** im Hauptmenü:
 
-# Erstellt Report in: C:\Logs\Sage100-ServerCheck\Report-2026-02-09.html
 ```
+╔═══════════════════════════════════════════════════════════╗
+║           VOLLSTÄNDIGER SYSTEM-CHECK                      ║
+╚═══════════════════════════════════════════════════════════╝
 
-### Test 3: GUI starten
+[1/8] Hardware-Prüfung...
+  ✓ CPU: Intel Xeon E5-2680 v4 @ 2.40GHz
+  ✓ RAM: 16 GB (12.4 GB frei)
+  ✓ Festplatten: Alle OK
 
-```powershell
-# Grafische Oberfläche starten:
-.\Sage100-ServerCheck-GUI.ps1
+[2/8] Betriebssystem-Check...
+  ✓ Windows Server 2019 Standard
+  ✓ Alle kritischen Updates installiert
+
+[3/8] Sage100-Dienste...
+  ✓ Sage100_ApplicationServer: Running
+  ✓ Sage100_DatabaseEngine: Running
+  ✓ Sage100_WebService: Running
+  ✓ Sage100_ReportServer: Running
+
+[4/8] Datenbank-Verbindung...
+  ✓ SQL Server 2019: Erreichbar
+  ✓ Sage100_PROD Datenbank: Online
+
+[5/8] Netzwerk-Konnektivität...
+  ✓ DNS-Auflösung: OK
+  ✓ Internet-Verbindung: OK
+  ✓ Interne Netzwerk-Shares: Erreichbar
+
+[6/8] Sicherheits-Check...
+  ✓ Firewall: Aktiv
+  ✓ Antivirus: Aktiv & aktuell
+  ✓ Windows Defender: Aktiviert
+
+[7/8] Performance-Metriken...
+  ✓ Durchschnittliche CPU-Last (24h): 18%
+  ✓ RAM-Auslastung: Normal
+  ✓ Disk I/O: Keine Engpässe
+
+[8/8] Compliance-Prüfung...
+  ✓ Backup-Status: Letztes Backup vor 8 Stunden
+  ✓ Log-Rotation: Konfiguriert
+  ✓ Audit-Logs: Werden geschrieben
+
+═══════════════════════════════════════════════════════════
+ERGEBNIS: ✅ SYSTEM GESUND - Keine kritischen Probleme
+═══════════════════════════════════════════════════════════
+
+Detaillierter Report gespeichert unter:
+  C:\Tools\Sage100-ServerCheck\Reports\SystemCheck_20240209_143022.html
 ```
-
-**GUI-Screenshot:**
-![Sage100-ServerCheck GUI](https://via.placeholder.com/800x600/1E1E1E/00FF00?text=Sage100+ServerCheck+GUI+%7C+Status%3A+All+Systems+Operational)
 
 ---
 
-## ⏰ Automatisierung (Scheduled Task)
+## 🎯 Kommandozeilen-Parameter
 
-### Automatische Installation
+Das Tool unterstützt auch direkte Parameter:
 
-Der Installer hat bereits einen Scheduled Task erstellt. Prüfe ihn mit:
+### Schnell-Scan ohne Menü:
+```powershell
+.\src\Sage100-ServerCheck.ps1 -QuickScan
+```
+
+### Vollcheck mit automatischem Report:
+```powershell
+.\src\Sage100-ServerCheck.ps1 -FullCheck -ExportReport
+```
+
+### Nur Netzwerk-Diagnose:
+```powershell
+.\src\Sage100-ServerCheck.ps1 -NetworkCheck
+```
+
+### Compliance-Check mit E-Mail-Versand:
+```powershell
+.\src\Sage100-ServerCheck.ps1 -ComplianceCheck -SendEmail
+```
+
+---
+
+## 📊 Report-Generierung
+
+### Automatische Reports
+
+Reports werden standardmäßig gespeichert unter:
+```
+C:\Tools\Sage100-ServerCheck\Reports\
+```
+
+### Report-Formate
+
+- **HTML**: Interaktiver Web-Report mit Grafiken
+- **PDF**: Druckbares Dokument (benötigt wkhtmltopdf)
+- **JSON**: Maschinenlesbare Rohdaten
+- **CSV**: Excel-Import-fähig
+
+### Beispiel: Report per E-Mail versenden
+
+Bearbeite `Config\config.json`:
+
+```json
+{
+  "EmailSettings": {
+    "Enabled": true,
+    "SMTPServer": "smtp.deinefirma.de",
+    "Port": 587,
+    "From": "servercheck@deinefirma.de",
+    "To": "admin@deinefirma.de",
+    "UseSSL": true
+  }
+}
+```
+
+Dann ausführen:
+```powershell
+.\src\Sage100-ServerCheck.ps1 -FullCheck -SendEmail
+```
+
+---
+
+## 🔧 Konfiguration
+
+### Hauptkonfigurationsdatei
+
+Die Datei `Config\config.json` enthält alle Einstellungen:
+
+```json
+{
+  "General": {
+    "LogLevel": "Info",
+    "RetentionDays": 30,
+    "AutoBackup": true
+  },
+  "Thresholds": {
+    "CPU_Warning": 75,
+    "CPU_Critical": 90,
+    "RAM_Warning": 80,
+    "RAM_Critical": 95,
+    "Disk_Warning": 70,
+    "Disk_Critical": 85
+  },
+  "Sage100": {
+    "InstallPath": "C:\\Program Files\\Sage\\Sage100",
+    "DatabaseServer": "localhost\\SAGE100",
+    "Services": [
+      "Sage100_ApplicationServer",
+      "Sage100_DatabaseEngine"
+    ]
+  }
+}
+```
+
+### Anpassung der Schwellwerte
+
+Bearbeite die Werte im `Thresholds`-Abschnitt nach deinen Anforderungen.
+
+---
+
+## 📅 Automatisierung mit Task Scheduler
+
+### Täglicher automatischer Check um 2:00 Uhr nachts
 
 ```powershell
-Get-ScheduledTask -TaskName "Sage100-DailyCheck" | Format-List
-```
-
-**Erwartete Ausgabe:**
-```
-TaskName  : Sage100-DailyCheck
-State     : Ready
-Triggers  : {Täglich um 08:00}
-Actions   : {PowerShell.exe -File "C:\Program Files\Sage100-ServerCheck\Sage100-ServerCheck.ps1" -FullCheck}
-```
-
-### Manuelle Task-Konfiguration
-
-Falls der Task fehlt, erstelle ihn manuell:
-
-```powershell
+# Task Scheduler Task erstellen
 $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
-  -Argument "-ExecutionPolicy Bypass -File `"C:\Program Files\Sage100-ServerCheck\Sage100-ServerCheck.ps1`" -FullCheck"
+  -Argument "-ExecutionPolicy Bypass -File C:\Tools\Sage100-ServerCheck\src\Sage100-ServerCheck.ps1 -FullCheck -ExportReport -SendEmail"
 
-$Trigger = New-ScheduledTaskTrigger -Daily -At 08:00
+$Trigger = New-ScheduledTaskTrigger -Daily -At 2:00AM
 
 $Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
-Register-ScheduledTask -TaskName "Sage100-DailyCheck" `
+Register-ScheduledTask -TaskName "Sage100-ServerCheck-Daily" `
   -Action $Action `
   -Trigger $Trigger `
   -Principal $Principal `
-  -Description "Täglicher Sage100 Server-Check mit automatischem Report"
+  -Description "Täglicher automatischer Server-Check für Sage100"
 ```
 
-### Task-Einstellungen anpassen
+### Überprüfung des Tasks
 
 ```powershell
-# Trigger auf 2x täglich ändern (08:00 und 16:00):
-$Task = Get-ScheduledTask -TaskName "Sage100-DailyCheck"
-$Task | Set-ScheduledTask -Trigger @(
-  (New-ScheduledTaskTrigger -Daily -At 08:00),
-  (New-ScheduledTaskTrigger -Daily -At 16:00)
-)
+Get-ScheduledTask -TaskName "Sage100-ServerCheck-Daily"
 ```
 
 ---
 
-## 🗑️ Deinstallation
+## 🆘 Problembehandlung
 
-### Automatische Deinstallation
+Falls Probleme auftreten, siehe **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**.
 
-```powershell
-# Als Administrator ausführen:
-C:\Program Files\Sage100-ServerCheck\Uninstall.ps1
-```
+### Häufige Probleme:
 
-### Manuelle Deinstallation
-
-```powershell
-# 1. Scheduled Task entfernen:
-Unregister-ScheduledTask -TaskName "Sage100-DailyCheck" -Confirm:$false
-
-# 2. Desktop-Verknüpfung löschen:
-Remove-Item "$env:PUBLIC\Desktop\Sage100-ServerCheck.lnk" -Force
-
-# 3. Programmdateien löschen:
-Remove-Item "C:\Program Files\Sage100-ServerCheck" -Recurse -Force
-
-# 4. Logs behalten oder löschen:
-# Remove-Item "C:\Logs\Sage100-ServerCheck" -Recurse -Force
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Problem 1: "Ausführung wurde verhindert"
-
-**Fehlermeldung:**
-```
-.\Sage100-ServerCheck.ps1 : Die Datei [...] kann nicht geladen werden, da die Ausführung
-von Skripts auf diesem System deaktiviert ist.
-```
+#### Problem: "Datei kann nicht geladen werden, da die Ausführung von Skripts auf diesem System deaktiviert ist"
 
 **Lösung:**
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
----
-
-### Problem 2: "SQL Server nicht erreichbar"
-
-**Fehlermeldung:**
-```
-❌ SQL Server-Verbindung fehlgeschlagen: Timeout expired
-```
-
-**Lösungsschritte:**
-1. **SQL Server-Dienst prüfen:**
-   ```powershell
-   Get-Service -Name "MSSQL*" | Format-Table -AutoSize
-   ```
-
-2. **Firewall-Regel prüfen:**
-   ```powershell
-   Test-NetConnection -ComputerName "DEIN-SERVER" -Port 1433
-   ```
-
-3. **SQL Server Browser aktivieren:**
-   - Öffne **SQL Server Configuration Manager**
-   - Gehe zu **SQL Server-Dienste**
-   - Starte **SQL Server-Browser**
-
-4. **Verbindungsstring testen:**
-   ```powershell
-   $ConnectionString = "Server=DEIN-SERVER\SAGE;Database=master;Integrated Security=True;Connection Timeout=5;"
-   $SqlConnection = New-Object System.Data.SqlClient.SqlConnection($ConnectionString)
-   $SqlConnection.Open()
-   $SqlConnection.State  # Sollte "Open" zurückgeben
-   $SqlConnection.Close()
-   ```
-
----
-
-### Problem 3: "Modul konnte nicht geladen werden"
-
-**Fehlermeldung:**
-```
-Import-Module : Die angegebene Modul "DebugLogger" wurde nicht geladen, da in keinem Modulverzeichnis eine gültige Moduldatei gefunden wurde.
-```
+#### Problem: "Module nicht gefunden"
 
 **Lösung:**
 ```powershell
-# Modulpfade prüfen:
+# Überprüfe den Modul-Pfad
 $env:PSModulePath -split ';'
 
-# Module manuell mit vollem Pfad laden:
-$ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-Import-Module "$ScriptRoot\Modules\DebugLogger.psm1" -Force -Verbose
+# Importiere Module manuell
+Import-Module "C:\Tools\Sage100-ServerCheck\Modules\SystemCheck.psm1" -Force
 ```
 
----
-
-### Problem 4: "Zugriff verweigert" bei Event-Log
-
-**Fehlermeldung:**
-```
-Write-EventLog : Zugriff verweigert
-```
+#### Problem: "Zugriff verweigert"
 
 **Lösung:**
-```powershell
-# Event-Quelle als Administrator registrieren:
-New-EventLog -LogName "Application" -Source "Sage100ServerCheck"
-```
+- Starte PowerShell als Administrator
+- Prüfe NTFS-Berechtigungen auf dem Tool-Ordner
 
 ---
 
-### Problem 5: E-Mails werden nicht versendet
+## 📚 Weitere Ressourcen
 
-**Fehlermeldung:**
-```
-❌ E-Mail konnte nicht gesendet werden: Der SMTP-Server erfordert eine sichere Verbindung
-```
-
-**Lösungsschritte:**
-
-1. **SMTP-Einstellungen prüfen:**
-   ```json
-   "SMTP": {
-     "Server": "smtp.office365.com",
-     "Port": 587,
-     "UseSsl": true  // ← Muss "true" sein für Office365
-   }
-   ```
-
-2. **Authentifizierung testen:**
-   ```powershell
-   $SmtpServer = "smtp.office365.com"
-   $SmtpPort = 587
-   $SmtpUser = "dein-user@firma.de"
-   $SmtpPassword = Read-Host "Passwort" -AsSecureString
-   
-   $Credential = New-Object System.Management.Automation.PSCredential($SmtpUser, $SmtpPassword)
-   
-   Send-MailMessage `
-     -To "test@firma.de" `
-     -From "dein-user@firma.de" `
-     -Subject "Test" `
-     -Body "Test-Mail" `
-     -SmtpServer $SmtpServer `
-     -Port $SmtpPort `
-     -UseSsl `
-     -Credential $Credential
-   ```
-
-3. **Firewall-Regel für SMTP-Port hinzufügen:**
-   ```powershell
-   New-NetFirewallRule `
-     -DisplayName "SMTP Outbound" `
-     -Direction Outbound `
-     -Protocol TCP `
-     -RemotePort 587 `
-     -Action Allow
-   ```
+- **[Troubleshooting Guide](./TROUBLESHOOTING.md)** - Detaillierte Fehlerbehandlung
+- **[Code-Signing Anleitung](./CODE-SIGNING.md)** - Für erhöhte Sicherheit
+- **[GitHub Repository](https://github.com/MJungAktuellis/Sage100-ServerCheck)** - Neueste Version
+- **[Changelog](../CHANGELOG.md)** - Versionshistorie
 
 ---
 
-### Problem 6: Performance-Probleme bei großen Datenbanken
+## ✅ Installation abgeschlossen!
 
-**Symptom:**
-```
-⚠️  Check dauert länger als 5 Minuten
-```
-
-**Optimierungen:**
-
-1. **Datenbank-Checks limitieren:**
-   ```json
-   "SqlServer": {
-     "CheckOnlyOnlineDatabases": true,
-     "SkipSystemDatabases": true,
-     "MaxParallelChecks": 4
-   }
-   ```
-
-2. **Performance-Counter deaktivieren:**
-   ```json
-   "Monitoring": {
-     "EnablePerformanceCounters": false
-   }
-   ```
-
-3. **Verbindungs-Timeout reduzieren:**
-   ```json
-   "SqlServer": {
-     "ConnectionTimeout": 5  // Von 15 auf 5 Sekunden
-   }
-   ```
-
----
-
-## 📊 Log-Dateien
-
-### Log-Verzeichnis-Struktur
-
-```
-C:\Logs\Sage100-ServerCheck\
-├── 2026-02-09_Check.log          # Tägliches Haupt-Log
-├── 2026-02-09_Errors.log         # Nur Fehler
-├── 2026-02-09_Report.html        # HTML-Report
-├── Archive\
-│   ├── 2026-02-08_Check.log
-│   └── 2026-02-07_Check.log
-└── Performance\
-    └── 2026-02-09_Counters.csv   # Performance-Daten
-```
-
-### Log-Dateien analysieren
+Du kannst jetzt mit dem Tool arbeiten. Für weitere Hilfe starte:
 
 ```powershell
-# Letzte 50 Fehler anzeigen:
-Get-Content "C:\Logs\Sage100-ServerCheck\*_Errors.log" -Tail 50
-
-# Nach spezifischem Fehler suchen:
-Select-String -Path "C:\Logs\Sage100-ServerCheck\*.log" -Pattern "SQL Server" -CaseSensitive
+.\src\Sage100-ServerCheck.ps1 -Help
 ```
 
----
-
-## 📞 Support & Kontakt
-
-**GitHub Issues:**  
-https://github.com/MJungAktuellis/Sage100-ServerCheck/issues
-
-**Dokumentation:**  
-https://github.com/MJungAktuellis/Sage100-ServerCheck/wiki
-
-**E-Mail:**  
-support@deinefirma.de
-
----
-
-## 📝 Changelog
-
-### Version 2.0 (2026-02-09)
-- ✅ Vollständige Installationsanleitung hinzugefügt
-- ✅ Automatischer EASY-INSTALL.cmd
-- ✅ Verbesserte Fehlerbehandlung
-- ✅ GUI mit WPF/XAML
-- ✅ E-Mail-Benachrichtigungen
-- ✅ Performance-Monitoring
-
-### Version 1.0 (2025-12-01)
-- 🎉 Erste öffentliche Version
-
----
-
-## ✅ Installations-Checkliste
-
-Nutze diese Checkliste, um sicherzustellen, dass alles korrekt installiert ist:
-
-- [ ] **PowerShell 5.1+** installiert
-- [ ] **Administrator-Rechte** verfügbar
-- [ ] **Repository geklont** nach `C:\Sage100-ServerCheck`
-- [ ] **EASY-INSTALL.cmd** ausgeführt
-- [ ] **Config\config.json** angepasst (SQL Server-Name)
-- [ ] **SMTP-Passwort** verschlüsselt
-- [ ] **QuickScan-Test** erfolgreich durchgeführt
-- [ ] **FullCheck-Test** erfolgreich durchgeführt
-- [ ] **Scheduled Task** "Sage100-DailyCheck" aktiv
-- [ ] **Desktop-Verknüpfung** funktioniert
-- [ ] **Erste Test-E-Mail** erhalten
-- [ ] **Log-Dateien** werden korrekt erstellt
-
----
-
-**🎉 Installation abgeschlossen! Dein Sage100-Server wird jetzt automatisch überwacht.**
+**Viel Erfolg mit dem Sage100-ServerCheck Tool!** 🚀
