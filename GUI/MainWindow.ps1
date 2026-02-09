@@ -10,6 +10,7 @@ class MainWindow {
     [Button]$StartButton
     [ToolStripProgressBar]$ProgressBar
     [ToolStripStatusLabel]$StatusLabel
+    [MenuStrip]$MenuStrip
     
     # TextBoxen fuer alle Tabs
     [RichTextBox]$SystemInfoBox
@@ -33,6 +34,65 @@ class MainWindow {
         $this.Form.StartPosition = "CenterScreen"
         $this.Form.FormBorderStyle = "Sizable"
         $this.Form.MinimumSize = New-Object Size(1000, 600)
+        
+        # MenuStrip erstellen
+        $this.MenuStrip = New-Object MenuStrip
+        $this.Form.MainMenuStrip = $this.MenuStrip
+        $this.Form.Controls.Add($this.MenuStrip)
+        
+        # Datei-Menü
+        $fileMenu = New-Object ToolStripMenuItem("&Datei")
+        $this.MenuStrip.Items.Add($fileMenu)
+        
+        $exportItem = New-Object ToolStripMenuItem("&Export Report...")
+        $exportItem.Add_Click({
+            param($sender, $e)
+            $saveDialog = New-Object SaveFileDialog
+            $saveDialog.Filter = "HTML Dateien (*.html)|*.html|Alle Dateien (*.*)|*.*"
+            $saveDialog.FileName = "Sage100_ServerCheck_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
+            if ($saveDialog.ShowDialog() -eq [DialogResult]::OK) {
+                try {
+                    if (Get-Command -Name "New-HTMLReport" -ErrorAction SilentlyContinue) {
+                        $report = New-HTMLReport -CheckResults $this.CheckResults
+                        $report | Out-File -FilePath $saveDialog.FileName -Encoding UTF8
+                        [MessageBox]::Show("Report erfolgreich exportiert nach:`r`n$($saveDialog.FileName)", 
+                            "Export erfolgreich", [MessageBoxButtons]::OK, [MessageBoxIcon]::Information)
+                    } else {
+                        [MessageBox]::Show("Export-Funktion nicht verfügbar.`r`nModul 'ReportGenerator' fehlt.", 
+                            "Fehler", [MessageBoxButtons]::OK, [MessageBoxIcon]::Error)
+                    }
+                } catch {
+                    [MessageBox]::Show("Fehler beim Export:`r`n$($_.Exception.Message)", 
+                        "Fehler", [MessageBoxButtons]::OK, [MessageBoxIcon]::Error)
+                }
+            }
+        })
+        $fileMenu.DropDownItems.Add($exportItem)
+        
+        $fileMenu.DropDownItems.Add((New-Object ToolStripSeparator))
+        
+        $exitItem = New-Object ToolStripMenuItem("&Beenden")
+        $exitItem.ShortcutKeys = [Keys]::Alt -bor [Keys]::F4
+        $exitItem.Add_Click({
+            param($sender, $e)
+            $this.Form.Close()
+        })
+        $fileMenu.DropDownItems.Add($exitItem)
+        
+        # Hilfe-Menü
+        $helpMenu = New-Object ToolStripMenuItem("&Hilfe")
+        $this.MenuStrip.Items.Add($helpMenu)
+        
+        $aboutItem = New-Object ToolStripMenuItem("&Über...")
+        $aboutItem.Add_Click({
+            param($sender, $e)
+            [MessageBox]::Show(
+                "Sage 100 Server Check & Setup Tool`r`nVersion 2.0`r`n`r`n© 2024 - Entwickelt für Sage 100 Systemadministratoren`r`n`r`nDieses Tool führt umfassende Systemprüfungen durch und validiert die Sage 100 Anforderungen.",
+                "Über Sage 100 Server Check Tool",
+                [MessageBoxButtons]::OK,
+                [MessageBoxIcon]::Information)
+        })
+        $helpMenu.DropDownItems.Add($aboutItem)
         
         # Main Container
         $mainContainer = New-Object Panel
@@ -100,10 +160,10 @@ class MainWindow {
         $this.ProgressBar.Size = New-Object Size(200, 16)
         $statusStrip.Items.Add($this.ProgressBar)
         
-        # Event Handlers - FIX: Speichere Referenz auf $this
-        $window = $this
+        # Event Handler - FIX: Verwende Script-Scope-Variable
+        $script:MainWindowInstance = $this
         $this.StartButton.Add_Click({
-            $window.RunFullCheck()
+            $script:MainWindowInstance.RunFullCheck()
         })
     }
     
