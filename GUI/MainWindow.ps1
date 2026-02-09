@@ -9,7 +9,7 @@ class MainWindow {
     [TabControl]$TabControl
     [Button]$StartButton
     [ProgressBar]$ProgressBar
-    [Label]$StatusLabel
+    [ToolStripStatusLabel]$StatusLabel
     
     # TextBoxen fuer alle Tabs
     [RichTextBox]$SystemInfoBox
@@ -99,6 +99,11 @@ class MainWindow {
         $this.ProgressBar = New-Object ToolStripProgressBar
         $this.ProgressBar.Size = New-Object Size(200, 16)
         $statusStrip.Items.Add($this.ProgressBar)
+        
+        # Event Handlers
+        $this.StartButton.Add_Click({
+            $this.RunFullCheck()
+        })
     }
     
     [void]CreateOverviewTab() {
@@ -195,7 +200,6 @@ class MainWindow {
         $titleLabel.AutoSize = $true
         $card.Controls.Add($titleLabel)
         
-        # FIX: Umbenennung von $statusLabel zu $cardStatusLabel
         $cardStatusLabel = New-Object Label
         $cardStatusLabel.Text = $status
         $cardStatusLabel.ForeColor = $statusColor
@@ -211,7 +215,6 @@ class MainWindow {
     [void]UpdateStatusCard([string]$cardName, [string]$newStatus, [Color]$color) {
         if ($this.StatusCards.ContainsKey($cardName)) {
             $card = $this.StatusCards[$cardName]
-            # FIX: Umbenennung von $statusLabel zu $cardStatusLabel
             $cardStatusLabel = $card.Controls | Where-Object { $_.Name -eq "StatusLabel" }
             if ($cardStatusLabel) {
                 $cardStatusLabel.Text = $newStatus
