@@ -4,14 +4,15 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# =================================
+# =======================================
 # GUI-Klasse Definition
-# =================================
+# =======================================
 class MainWindow {
     [System.Windows.Forms.Form]$Form
     [System.Windows.Forms.TabControl]$TabControl
     [System.Windows.Forms.ProgressBar]$ProgressBar
     [System.Windows.Forms.Label]$StatusLabel
+    [System.Windows.Forms.Button]$StartButton
     [hashtable]$CheckResults = @{}
     
     # Konstruktor
@@ -30,7 +31,7 @@ class MainWindow {
         $this.Form.FormBorderStyle = "FixedDialog"
         $this.Form.MaximizeBox = $false
         
-        # Menü erstellen
+        # Menu erstellen
         $this.CreateMenuBar()
         
         # Tab-Control
@@ -61,11 +62,11 @@ class MainWindow {
         $this.Form.Controls.Add($this.StatusLabel)
     }
     
-    # Menüleiste erstellen
+    # Menuleiste erstellen
     [void] CreateMenuBar() {
         $menuStrip = New-Object System.Windows.Forms.MenuStrip
         
-        # Datei-Menü
+        # Datei-Menu
         $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem
         $fileMenu.Text = "Datei"
         
@@ -89,7 +90,7 @@ class MainWindow {
         
         $menuStrip.Items.Add($fileMenu)
         
-        # Hilfe-Menü
+        # Hilfe-Menu
         $helpMenu = New-Object System.Windows.Forms.ToolStripMenuItem
         $helpMenu.Text = "Hilfe"
         
@@ -140,16 +141,16 @@ class MainWindow {
         $cardsPanel.Controls.Add($complianceCard)
         
         # Start-Button
-        $checkButton = New-Object System.Windows.Forms.Button
-        $checkButton.Text = "Vollstaendige Pruefung starten"
-        $checkButton.Location = New-Object System.Drawing.Point(20, 250)
-        $checkButton.Size = New-Object System.Drawing.Size(250, 40)
-        $checkButton.BackColor = [System.Drawing.Color]::DodgerBlue
-        $checkButton.ForeColor = [System.Drawing.Color]::White
-        $checkButton.FlatStyle = "Flat"
-        $checkButton.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-        $checkButton.Name = "StartCheckButton"
-        $tab.Controls.Add($checkButton)
+        $this.StartButton = New-Object System.Windows.Forms.Button
+        $this.StartButton.Text = "Vollstaendige Pruefung starten"
+        $this.StartButton.Location = New-Object System.Drawing.Point(20, 250)
+        $this.StartButton.Size = New-Object System.Drawing.Size(250, 40)
+        $this.StartButton.BackColor = [System.Drawing.Color]::DodgerBlue
+        $this.StartButton.ForeColor = [System.Drawing.Color]::White
+        $this.StartButton.FlatStyle = "Flat"
+        $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+        $this.StartButton.Name = "StartCheckButton"
+        $tab.Controls.Add($this.StartButton)
         
         # Ergebnis-Textbox
         $resultBox = New-Object System.Windows.Forms.TextBox
@@ -270,14 +271,13 @@ class MainWindow {
     [void] SetupEventHandlers() {
         $window = $this
         
-        # Start-Button Click
-        $startButton = $this.Form.Controls["DashboardTab"].Controls["StartCheckButton"]
-        $startButton.Add_Click({
+        # Start-Button Click - DIREKTER Zugriff auf $this.StartButton
+        $this.StartButton.Add_Click({
             $window.RunFullCheck()
         })
     }
     
-    # Vollständige Prüfung
+    # Vollstaendige Pruefung
     [void] RunFullCheck() {
         $this.StatusLabel.Text = "Starte Pruefung..."
         $this.ProgressBar.Value = 0
