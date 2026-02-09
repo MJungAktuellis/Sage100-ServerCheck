@@ -16,7 +16,7 @@ class MainWindow {
     [System.Windows.Forms.Label]$ComplianceStatusLabel
     [System.Windows.Forms.Button]$StartButton
     [System.Windows.Forms.ProgressBar]$ProgressBar
-    [System.Windows.Forms.Label]$StatusLabel
+    [System.Windows.Forms.ToolStripStatusLabel]$StatusLabel
 
     MainWindow() {
         $this.InitializeForm()
@@ -38,7 +38,7 @@ class MainWindow {
     [void]CreateMenuBar() {
         $menuStrip = New-Object System.Windows.Forms.MenuStrip
 
-        # Datei-Menue
+        # Datei-Menü
         $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem
         $fileMenu.Text = "Datei"
 
@@ -53,12 +53,12 @@ class MainWindow {
         $fileMenu.DropDownItems.Add($exportItem)
         $fileMenu.DropDownItems.Add($exitItem)
 
-        # Hilfe-Menue
+        # Hilfe-Menü
         $helpMenu = New-Object System.Windows.Forms.ToolStripMenuItem
         $helpMenu.Text = "Hilfe"
 
         $aboutItem = New-Object System.Windows.Forms.ToolStripMenuItem
-        $aboutItem.Text = "Ueber..."
+        $aboutItem.Text = "Über..."
         $aboutItem.Add_Click({ $this.ShowAbout() })
 
         $helpMenu.DropDownItems.Add($aboutItem)
@@ -117,7 +117,7 @@ class MainWindow {
         $this.LogTextBox.Text = "[$(Get-Date -Format 'HH:mm:ss')] GUI gestartet`n"
         $logTab.Controls.Add($this.LogTextBox)
 
-        # Tabs hinzufuegen
+        # Tabs hinzufügen
         $this.TabControl.TabPages.Add($dashboardTab)
         $this.TabControl.TabPages.Add($systemTab)
         $this.TabControl.TabPages.Add($networkTab)
@@ -243,12 +243,14 @@ SQL Server Instanzen:
 $($data.SystemInfo.SQLInstances -join "`n  ")
 
 ========================================
-SAGE 100 KOMPATIBILITAET
+SAGE 100 KOMPATIBILITÄT
 ========================================
 
 $($data.ComplianceResults)
 "@
+
         $this.SystemTextBox.Text = $text
+        $this.TabControl.SelectedIndex = 1
     }
 
     [void]UpdateNetworkTab([hashtable]$data) {
@@ -257,27 +259,41 @@ $($data.ComplianceResults)
 NETZWERK-INFORMATIONEN
 ========================================
 
-IP-Adresse: $($data.NetworkInfo.IPAddress)
-Subnetzmaske: $($data.NetworkInfo.SubnetMask)
-Gateway: $($data.NetworkInfo.Gateway)
-DNS-Server: $($data.NetworkInfo.DNSServers -join ", ")
+Hostname: $($data.NetworkInfo.Hostname)
+IP-Adressen: $($data.NetworkInfo.IPAddresses -join ", ")
+Aktive Ports: $($data.NetworkInfo.ActivePorts -join ", ")
 
 ========================================
-FIREWALL & PORTS
+FIREWALL-STATUS
 ========================================
 
-Firewall-Status: $($data.NetworkInfo.FirewallStatus)
-
-Offene Ports:
-$($data.NetworkInfo.OpenPorts -join "`n  ")
+$($data.NetworkInfo.FirewallStatus)
 
 ========================================
-NETZWERK-KONNEKTIVITAET
+NETZWERK-LATENZ
 ========================================
 
-$($data.NetworkInfo.ConnectivityTests)
+$($data.NetworkInfo.LatencyTests)
 "@
+
         $this.NetworkTextBox.Text = $text
+    }
+
+    [void]UpdateDashboardStatus([string]$module, [string]$status, [System.Drawing.Color]$color) {
+        switch ($module) {
+            "System" {
+                $this.SystemStatusLabel.Text = $status
+                $this.SystemStatusLabel.ForeColor = $color
+            }
+            "Network" {
+                $this.NetworkStatusLabel.Text = $status
+                $this.NetworkStatusLabel.ForeColor = $color
+            }
+            "Compliance" {
+                $this.ComplianceStatusLabel.Text = $status
+                $this.ComplianceStatusLabel.ForeColor = $color
+            }
+        }
     }
 
     [void]AddLog([string]$message) {
@@ -286,39 +302,34 @@ $($data.NetworkInfo.ConnectivityTests)
         $this.LogTextBox.ScrollToCaret()
     }
 
-    [void]UpdateStatus([string]$text) {
+    [void]SetProgress([int]$percent, [string]$text) {
+        $this.ProgressBar.Value = $percent
         $this.StatusLabel.Text = $text
-        $this.Form.Refresh()
-    }
-
-    [void]SetProgress([int]$value, [bool]$visible) {
-        $this.ProgressBar.Value = $value
-        $this.ProgressBar.Visible = $visible
-        $this.Form.Refresh()
+        $this.ProgressBar.Visible = ($percent -lt 100)
     }
 
     [void]ExportReport() {
         $saveDialog = New-Object System.Windows.Forms.SaveFileDialog
-        $saveDialog.Filter = "HTML-Datei (*.html)|*.html|Text-Datei (*.txt)|*.txt"
+        $saveDialog.Filter = "HTML Bericht (*.html)|*.html|Text Datei (*.txt)|*.txt"
         $saveDialog.Title = "Bericht exportieren"
-        $saveDialog.FileName = "Sage100-ServerCheck-$(Get-Date -Format 'yyyy-MM-dd').html"
-
+        $saveDialog.FileName = "Sage100_ServerCheck_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        
         if ($saveDialog.ShowDialog() -eq "OK") {
             try {
-                # Export-Logik hier implementieren
+                # Hier Export-Logik implementieren
                 [System.Windows.Forms.MessageBox]::Show(
                     "Bericht wurde erfolgreich exportiert nach:`n$($saveDialog.FileName)",
                     "Export erfolgreich",
-                    "OK",
-                    "Information"
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Information
                 )
             }
             catch {
                 [System.Windows.Forms.MessageBox]::Show(
                     "Fehler beim Exportieren: $($_.Exception.Message)",
                     "Export fehlgeschlagen",
-                    "OK",
-                    "Error"
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Error
                 )
             }
         }
@@ -329,23 +340,16 @@ $($data.NetworkInfo.ConnectivityTests)
 Sage 100 Server Check & Setup Tool
 Version 2.0
 
-Entwickelt fuer die Ueberpruefung und Einrichtung
-von Sage 100 Server-Umgebungen.
+Ein Tool zur Überprüfung und Konfiguration
+von Sage 100 Serverumgebungen.
 
-Features:
-- System-Kompatibilitaetspruefung
-- Netzwerk-Analyse
-- Compliance-Check
-- Detailliertes Reporting
-- Export-Funktionen
-
-(c) 2024
+© 2024
 "@
         [System.Windows.Forms.MessageBox]::Show(
             $aboutText,
-            "Ueber Sage 100 Server Check Tool",
-            "OK",
-            "Information"
+            "Über Sage 100 Server Check",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
         )
     }
 
@@ -354,5 +358,5 @@ Features:
     }
 }
 
-# Export der Klasse
-return [MainWindow]
+# Exportiere die Klasse
+Export-ModuleMember -Variable MainWindow
