@@ -1,0 +1,50 @@
+{
+  "SqlServer": {
+    "ServerName": "localhost\\SQLEXPRESS",
+    "ServiceName": "MSSQL$SQLEXPRESS",
+    "Databases": [
+      "Sage100_Production",
+      "Sage100_Test"
+    ],
+    "ConnectionTimeout": 5
+  },
+  "RequiredServices": [
+    "MSSQL$SQLEXPRESS",
+    "SQLBrowser",
+    "W3SVC"
+  ],
+  "DiskSpace": {
+    "MinimumFreePercent": 15,
+    "CriticalPercent": 10
+  },
+  "NetworkEndpoints": [
+    {
+      "Host": "localhost",
+      "Port": 1433,
+      "Critical": true,
+      "Description": "SQL Server"
+    }
+  ],
+  "Email": {
+    "Enabled": false,
+    "SmtpServer": "smtp.office365.com",
+    "Port": 587,
+    "UseSsl": true,
+    "From": "servercheck@company.com",
+    "To": [
+      "admin@company.com"
+    ],
+    "Subject": "Sage 100 Server Status: {STATUS}",
+    "SendOnlyOnError": true
+  },
+  "Scheduling": {
+    "Enabled": false,
+    "IntervalMinutes": 30
+  },
+  "Logging": {
+    "Enabled": true,
+    "LogPath": "Logs",
+    "MaxLogFiles": 30,
+    "VerboseLogging": false
+  }
+}
