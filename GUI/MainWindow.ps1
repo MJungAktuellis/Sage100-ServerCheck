@@ -1,5 +1,5 @@
-# GUI\MainWindow.ps1
-# Hauptfenster der Sage 100 Server Check GUI
+# GUI/MainWindow.ps1
+# Hauptfenster der Sage 100 Server Check GUI - FINALE VERSION
 
 using namespace System.Windows.Forms
 using namespace System.Drawing
@@ -11,218 +11,175 @@ class MainWindow {
     [MenuStrip]$MenuStrip
     [ToolStripProgressBar]$ProgressBar
     [ToolStripStatusLabel]$StatusLabel
-    [System.Collections.Hashtable]$StatusCards
-    [RichTextBox]$SystemInfoBox
-    [RichTextBox]$NetworkInfoBox
+    
+    # Tab Content Controls
+    [RichTextBox]$SystemDetailsBox
+    [RichTextBox]$NetworkDetailsBox
     [RichTextBox]$LogBox
-    [System.Collections.Hashtable]$CheckResults
+    
+    # Status Cards
+    [GroupBox]$SystemCard
+    [GroupBox]$NetworkCard
+    [GroupBox]$ComplianceCard
     
     MainWindow() {
-        $this.StatusCards = @{}
-        $this.CheckResults = @{}
         $this.InitializeComponents()
-        $script:MainWindowInstance = $this
+        # Event-Handler werden extern in Sage100-ServerCheck-GUI.ps1 registriert
     }
     
     [void]InitializeComponents() {
-        # Hauptfenster
+        # === HAUPTFENSTER ===
         $this.Form = New-Object Form
         $this.Form.Text = "Sage 100 Server Check & Setup Tool v2.0"
-        $this.Form.Size = New-Object Size(1200, 800)
+        $this.Form.Size = New-Object Size(1400, 900)
         $this.Form.StartPosition = "CenterScreen"
-        $this.Form.FormBorderStyle = "Sizable"
-        $this.Form.MinimumSize = New-Object Size(1000, 600)
+        $this.Form.MinimumSize = New-Object Size(1200, 700)
         
-        # Main Container
-        $mainContainer = New-Object Panel
-        $mainContainer.Dock = "Fill"
-        $this.Form.Controls.Add($mainContainer)
+        # === MENU BAR ===
+        $this.MenuStrip = New-Object MenuStrip
         
-        # Menu Strip
-        $this.CreateMenuStrip()
+        $menuFile = New-Object ToolStripMenuItem("Datei")
+        $menuExport = New-Object ToolStripMenuItem("Export Report")
+        $menuExport.Add_Click({ $this.ExportReport() })
+        $menuExit = New-Object ToolStripMenuItem("Beenden")
+        $menuExit.Add_Click({ $this.Form.Close() })
+        $menuFile.DropDownItems.Add($menuExport)
+        $menuFile.DropDownItems.Add($menuExit)
         
-        # Header Panel
+        $menuHelp = New-Object ToolStripMenuItem("Hilfe")
+        $menuAbout = New-Object ToolStripMenuItem("Ueber...")
+        $menuAbout.Add_Click({ 
+            [MessageBox]::Show("Sage 100 Server Check Tool v2.0`n`nProfessionelles Prueftool fuer Sage 100 Server", "Info") 
+        })
+        $menuHelp.DropDownItems.Add($menuAbout)
+        
+        $this.MenuStrip.Items.Add($menuFile)
+        $this.MenuStrip.Items.Add($menuHelp)
+        $this.Form.Controls.Add($this.MenuStrip)
+        
+        # === HEADER PANEL ===
         $headerPanel = New-Object Panel
         $headerPanel.Dock = "Top"
-        $headerPanel.Height = 50
+        $headerPanel.Height = 60
         $headerPanel.BackColor = [ColorTranslator]::FromHtml("#0078D4")
-        $mainContainer.Controls.Add($headerPanel)
+        $this.Form.Controls.Add($headerPanel)
         
-        # Header Title
         $titleLabel = New-Object Label
         $titleLabel.Text = "Sage 100 Server Check Tool"
         $titleLabel.ForeColor = [Color]::White
-        $titleLabel.Font = New-Object Drawing.Font("Segoe UI", 12, [FontStyle]::Bold)
-        $titleLabel.Location = New-Object Point(15, 15)
+        $titleLabel.Font = New-Object Font("Segoe UI", 14, [FontStyle]::Bold)
+        $titleLabel.Location = New-Object Point(20, 18)
         $titleLabel.AutoSize = $true
         $headerPanel.Controls.Add($titleLabel)
         
-        # Start-Button
+        # Start Button (rechts im Header)
         $this.StartButton = New-Object Button
         $this.StartButton.Text = "> Vollstaendige Pruefung starten"
-        $this.StartButton.Size = New-Object Size(240, 35)
-        $this.StartButton.BackColor = [ColorTranslator]::FromHtml("#00FF00")
-        $this.StartButton.ForeColor = [Color]::Black
-        $this.StartButton.Font = New-Object Drawing.Font("Segoe UI", 9, [FontStyle]::Bold)
+        $this.StartButton.Size = New-Object Size(280, 40)
+        $this.StartButton.BackColor = [ColorTranslator]::FromHtml("#00CC00")
+        $this.StartButton.ForeColor = [Color]::White
+        $this.StartButton.Font = New-Object Font("Segoe UI", 10, [FontStyle]::Bold)
         $this.StartButton.FlatStyle = "Flat"
         $this.StartButton.Cursor = [System.Windows.Forms.Cursors]::Hand
         $this.StartButton.Anchor = "Top,Right"
-        $this.StartButton.Location = New-Object Point(($headerPanel.Width - 250), 8)
         $headerPanel.Controls.Add($this.StartButton)
         
-        # Event Handler
-        $this.StartButton.Add_Click({
-            $script:MainWindowInstance.RunFullCheck()
-        })
-        
-        # Responsive Button
+        # Responsive Button-Position
         $headerPanel.Add_Resize({
-            $this.StartButton.Location = New-Object Point(($headerPanel.Width - 250), 8)
+            $this.StartButton.Location = New-Object Point(($headerPanel.Width - 300), 10)
         })
+        $this.StartButton.Location = New-Object Point(($headerPanel.Width - 300), 10)
         
-        # TabControl
+        # === TAB CONTROL ===
         $this.TabControl = New-Object TabControl
         $this.TabControl.Dock = "Fill"
-        $this.TabControl.Font = New-Object Drawing.Font("Segoe UI", 10)
-        $mainContainer.Controls.Add($this.TabControl)
+        $this.TabControl.Font = New-Object Font("Segoe UI", 10)
+        $this.Form.Controls.Add($this.TabControl)
         
-        # Initialize Tabs
         $this.InitializeTabs()
         
-        # StatusBar
+        # === STATUS BAR ===
         $this.InitializeStatusBar()
     }
     
-    [void]CreateMenuStrip() {
-        $this.MenuStrip = New-Object MenuStrip
-        
-        # Datei-Menu
-        $fileMenu = New-Object ToolStripMenuItem("Datei")
-        
-        $exportItem = New-Object ToolStripMenuItem("Export Report...")
-        $exportItem.Add_Click({
-            $script:MainWindowInstance.ExportReport()
-        })
-        $fileMenu.DropDownItems.Add($exportItem)
-        
-        $fileMenu.DropDownItems.Add((New-Object ToolStripSeparator))
-        
-        $exitItem = New-Object ToolStripMenuItem("Beenden")
-        $exitItem.ShortcutKeys = [Keys]::Alt -bor [Keys]::F4
-        $exitItem.Add_Click({
-            $script:MainWindowInstance.Form.Close()
-        })
-        $fileMenu.DropDownItems.Add($exitItem)
-        
-        $this.MenuStrip.Items.Add($fileMenu)
-        
-        # Hilfe-Menu
-        $helpMenu = New-Object ToolStripMenuItem("Hilfe")
-        
-        $aboutItem = New-Object ToolStripMenuItem("Ueber...")
-        $aboutItem.Add_Click({
-            [MessageBox]::Show("Sage 100 Server Check & Setup Tool`nVersion 2.0`n`n(c) 2024", "Ueber", [MessageBoxButtons]::OK, [MessageBoxIcon]::Information)
-        })
-        $helpMenu.DropDownItems.Add($aboutItem)
-        
-        $this.MenuStrip.Items.Add($helpMenu)
-        
-        $this.Form.MainMenuStrip = $this.MenuStrip
-        $this.Form.Controls.Add($this.MenuStrip)
-    }
-    
     [void]InitializeTabs() {
-        # Tab 1: Dashboard
+        # === TAB 1: DASHBOARD ===
         $dashboardTab = [TabPage]::new("Dashboard")
         $this.TabControl.Controls.Add($dashboardTab)
         $this.InitializeDashboard($dashboardTab)
         
-        # Tab 2: System-Details
+        # === TAB 2: SYSTEM-DETAILS ===
         $systemTab = [TabPage]::new("System-Details")
         $this.TabControl.Controls.Add($systemTab)
         
-        $this.SystemInfoBox = New-Object RichTextBox
-        $this.SystemInfoBox.Dock = "Fill"
-        $this.SystemInfoBox.Font = New-Object Drawing.Font("Consolas", 9)
-        $this.SystemInfoBox.ReadOnly = $true
-        $this.SystemInfoBox.BackColor = [Color]::White
-        $this.SystemInfoBox.Text = "Klicken Sie auf 'Vollstaendige Pruefung starten', um System-Informationen anzuzeigen."
-        $systemTab.Controls.Add($this.SystemInfoBox)
+        $this.SystemDetailsBox = New-Object RichTextBox
+        $this.SystemDetailsBox.Dock = "Fill"
+        $this.SystemDetailsBox.Font = New-Object Font("Consolas", 9)
+        $this.SystemDetailsBox.ReadOnly = $true
+        $this.SystemDetailsBox.BackColor = [Color]::White
+        $this.SystemDetailsBox.Text = "Klicken Sie auf 'Vollstaendige Pruefung starten', um System-Details anzuzeigen."
+        $systemTab.Controls.Add($this.SystemDetailsBox)
         
-        # Tab 3: Netzwerk-Details
+        # === TAB 3: NETZWERK-DETAILS ===
         $networkTab = [TabPage]::new("Netzwerk-Details")
         $this.TabControl.Controls.Add($networkTab)
         
-        $this.NetworkInfoBox = New-Object RichTextBox
-        $this.NetworkInfoBox.Dock = "Fill"
-        $this.NetworkInfoBox.Font = New-Object Drawing.Font("Consolas", 9)
-        $this.NetworkInfoBox.ReadOnly = $true
-        $this.NetworkInfoBox.BackColor = [Color]::White
-        $this.NetworkInfoBox.Text = "Klicken Sie auf 'Vollstaendige Pruefung starten', um Netzwerk-Informationen anzuzeigen."
-        $networkTab.Controls.Add($this.NetworkInfoBox)
+        $this.NetworkDetailsBox = New-Object RichTextBox
+        $this.NetworkDetailsBox.Dock = "Fill"
+        $this.NetworkDetailsBox.Font = New-Object Font("Consolas", 9)
+        $this.NetworkDetailsBox.ReadOnly = $true
+        $this.NetworkDetailsBox.BackColor = [Color]::White
+        $this.NetworkDetailsBox.Text = "Klicken Sie auf 'Vollstaendige Pruefung starten', um Netzwerk-Details anzuzeigen."
+        $networkTab.Controls.Add($this.NetworkDetailsBox)
         
-        # Tab 4: Logs
+        # === TAB 4: LOGS ===
         $logTab = [TabPage]::new("Logs")
         $this.TabControl.Controls.Add($logTab)
         
         $this.LogBox = New-Object RichTextBox
         $this.LogBox.Dock = "Fill"
-        $this.LogBox.Font = New-Object Drawing.Font("Consolas", 9)
+        $this.LogBox.Font = New-Object Font("Consolas", 9)
         $this.LogBox.ReadOnly = $true
         $this.LogBox.BackColor = [Color]::White
         $logTab.Controls.Add($this.LogBox)
     }
     
     [void]InitializeDashboard([TabPage]$tab) {
-        # Status Panel
-        $statusPanel = New-Object FlowLayoutPanel
-        $statusPanel.Dock = "Fill"
-        $statusPanel.Padding = New-Object Padding(20)
-        $statusPanel.FlowDirection = "LeftToRight"
-        $statusPanel.AutoScroll = $true
-        $tab.Controls.Add($statusPanel)
+        # Container für Status-Cards
+        $cardPanel = New-Object FlowLayoutPanel
+        $cardPanel.Dock = "Fill"
+        $cardPanel.Padding = New-Object Padding(20)
+        $cardPanel.FlowDirection = "LeftToRight"
+        $cardPanel.WrapContents = $true
+        $tab.Controls.Add($cardPanel)
         
-        # Status Cards
-        $this.StatusCards["System"] = $this.CreateStatusCard("System-Check", "Nicht geprueft", [Color]::Gray)
-        $statusPanel.Controls.Add($this.StatusCards["System"])
+        # Status Cards erstellen
+        $this.SystemCard = $this.CreateStatusCard("System-Check", "Nicht geprueft", [Color]::Gray)
+        $this.NetworkCard = $this.CreateStatusCard("Netzwerk-Check", "Nicht geprueft", [Color]::Gray)
+        $this.ComplianceCard = $this.CreateStatusCard("Compliance-Check", "Nicht geprueft", [Color]::Gray)
         
-        $this.StatusCards["Network"] = $this.CreateStatusCard("Netzwerk-Check", "Nicht geprueft", [Color]::Gray)
-        $statusPanel.Controls.Add($this.StatusCards["Network"])
-        
-        $this.StatusCards["Compliance"] = $this.CreateStatusCard("Compliance-Check", "Nicht geprueft", [Color]::Gray)
-        $statusPanel.Controls.Add($this.StatusCards["Compliance"])
+        $cardPanel.Controls.Add($this.SystemCard)
+        $cardPanel.Controls.Add($this.NetworkCard)
+        $cardPanel.Controls.Add($this.ComplianceCard)
     }
     
     [GroupBox]CreateStatusCard([string]$title, [string]$status, [Color]$statusColor) {
         $card = New-Object GroupBox
         $card.Text = $title
-        $card.Size = New-Object Size(350, 150)
-        $card.Font = New-Object Drawing.Font("Segoe UI", 11, [FontStyle]::Bold)
+        $card.Size = New-Object Size(400, 180)
+        $card.Font = New-Object Font("Segoe UI", 11, [FontStyle]::Bold)
         $card.Margin = New-Object Padding(10)
         
         $cardStatusLabel = New-Object Label
+        $cardStatusLabel.Name = "StatusLabel"
         $cardStatusLabel.Text = $status
         $cardStatusLabel.ForeColor = $statusColor
-        $cardStatusLabel.Font = New-Object Drawing.Font("Segoe UI", 10)
-        $cardStatusLabel.Location = New-Object Point(15, 35)
+        $cardStatusLabel.Font = New-Object Font("Segoe UI", 14, [FontStyle]::Bold)
+        $cardStatusLabel.Location = New-Object Point(20, 40)
         $cardStatusLabel.AutoSize = $true
-        $cardStatusLabel.Name = "StatusLabel"
         $card.Controls.Add($cardStatusLabel)
         
         return $card
-    }
-    
-    [void]UpdateStatusCard([string]$cardName, [string]$newStatus, [Color]$color) {
-        if ($this.StatusCards.ContainsKey($cardName)) {
-            $card = $this.StatusCards[$cardName]
-            $cardStatusLabel = $card.Controls | Where-Object { $_.Name -eq "StatusLabel" }
-            if ($cardStatusLabel) {
-                $cardStatusLabel.Text = $newStatus
-                $cardStatusLabel.ForeColor = $color
-                $card.Refresh()
-                $this.Form.Refresh()
-            }
-        }
     }
     
     [void]InitializeStatusBar() {
@@ -232,11 +189,12 @@ class MainWindow {
         $this.StatusLabel.Text = "Bereit"
         $this.StatusLabel.Spring = $true
         $this.StatusLabel.TextAlign = "MiddleLeft"
-        $statusBar.Items.Add($this.StatusLabel)
         
         $this.ProgressBar = New-Object ToolStripProgressBar
-        $this.ProgressBar.Visible = $false
         $this.ProgressBar.Size = New-Object Size(200, 16)
+        $this.ProgressBar.Visible = $false
+        
+        $statusBar.Items.Add($this.StatusLabel)
         $statusBar.Items.Add($this.ProgressBar)
         
         $this.Form.Controls.Add($statusBar)
@@ -244,152 +202,128 @@ class MainWindow {
     
     [void]RunFullCheck() {
         try {
-            $this.AddLog("=== STARTE VOLLSTAENDIGE SYSTEMPRUEFUNG ===", [Color]::Blue)
+            $this.LogBox.Clear()
+            $this.AddLog("========================================", [Color]::Blue)
+            $this.AddLog("  VOLLSTAENDIGE SYSTEMPRUEFUNG GESTARTET", [Color]::Blue)
+            $this.AddLog("========================================`n", [Color]::Blue)
+            
             $this.StatusLabel.Text = "Pruefung laeuft..."
             $this.ProgressBar.Visible = $true
             $this.ProgressBar.Value = 0
             $this.StartButton.Enabled = $false
             
-            # System-Check
-            $this.AddLog("1. System-Check...", [Color]::Black)
-            $this.UpdateStatusCard("System", "Wird geprueft...", [Color]::Orange)
+            # === 1. SYSTEM-CHECK ===
+            $this.AddLog("[1/3] Fuehre System-Check durch...`n", [Color]::DarkBlue)
+            $this.UpdateCardStatus($this.SystemCard, "Wird geprueft...", [Color]::Orange)
             
             if (Get-Command -Name "Get-SystemInformation" -ErrorAction SilentlyContinue) {
                 $systemInfo = Get-SystemInformation
-                $this.CheckResults["System"] = $systemInfo
                 $this.UpdateSystemTab($systemInfo)
-                $this.UpdateStatusCard("System", "Erfolgreich geprueft", [Color]::Green)
-                $this.AddLog("   [OK] System-Check abgeschlossen", [Color]::Green)
+                $this.AddLog("  [OK] System-Check erfolgreich`n", [Color]::Green)
+                $this.UpdateCardStatus($this.SystemCard, "Erfolgreich geprueft", [Color]::Green)
             } else {
-                throw "Funktion 'Get-SystemInformation' nicht gefunden!"
+                $this.AddLog("  [FEHLER] Modul 'Get-SystemInformation' nicht gefunden`n", [Color]::Red)
+                $this.UpdateCardStatus($this.SystemCard, "Fehler", [Color]::Red)
             }
             
             $this.ProgressBar.Value = 33
+            $this.Form.Refresh()
             
-            # Netzwerk-Check
-            $this.AddLog("2. Netzwerk-Check...", [Color]::Black)
-            $this.UpdateStatusCard("Network", "Wird geprueft...", [Color]::Orange)
+            # === 2. NETZWERK-CHECK ===
+            $this.AddLog("`n[2/3] Fuehre Netzwerk-Check durch...`n", [Color]::DarkBlue)
+            $this.UpdateCardStatus($this.NetworkCard, "Wird geprueft...", [Color]::Orange)
             
             if (Get-Command -Name "Test-NetworkConfiguration" -ErrorAction SilentlyContinue) {
                 $networkInfo = Test-NetworkConfiguration
-                $this.CheckResults["Network"] = $networkInfo
                 $this.UpdateNetworkTab($networkInfo)
-                $this.UpdateStatusCard("Network", "Erfolgreich geprueft", [Color]::Green)
-                $this.AddLog("   [OK] Netzwerk-Check abgeschlossen", [Color]::Green)
+                $this.AddLog("  [OK] Netzwerk-Check erfolgreich`n", [Color]::Green)
+                $this.UpdateCardStatus($this.NetworkCard, "Erfolgreich geprueft", [Color]::Green)
             } else {
-                throw "Funktion 'Test-NetworkConfiguration' nicht gefunden!"
+                $this.AddLog("  [FEHLER] Modul 'Test-NetworkConfiguration' nicht gefunden`n", [Color]::Red)
+                $this.UpdateCardStatus($this.NetworkCard, "Fehler", [Color]::Red)
             }
             
             $this.ProgressBar.Value = 66
+            $this.Form.Refresh()
             
-            # Compliance-Check
-            $this.AddLog("3. Compliance-Check...", [Color]::Black)
-            $this.UpdateStatusCard("Compliance", "Wird geprueft...", [Color]::Orange)
+            # === 3. COMPLIANCE-CHECK ===
+            $this.AddLog("`n[3/3] Fuehre Compliance-Check durch...`n", [Color]::DarkBlue)
+            $this.UpdateCardStatus($this.ComplianceCard, "Wird geprueft...", [Color]::Orange)
             
             if (Get-Command -Name "Test-Sage100Compliance" -ErrorAction SilentlyContinue) {
                 $complianceInfo = Test-Sage100Compliance
-                $this.CheckResults["Compliance"] = $complianceInfo
-                $this.UpdateStatusCard("Compliance", "Erfolgreich geprueft", [Color]::Green)
-                $this.AddLog("   [OK] Compliance-Check abgeschlossen", [Color]::Green)
+                $this.AddLog("  [OK] Compliance-Check erfolgreich`n", [Color]::Green)
+                $this.UpdateCardStatus($this.ComplianceCard, "Erfolgreich geprueft", [Color]::Green)
             } else {
-                throw "Funktion 'Test-Sage100Compliance' nicht gefunden!"
+                $this.AddLog("  [FEHLER] Modul 'Test-Sage100Compliance' nicht gefunden`n", [Color]::Red)
+                $this.UpdateCardStatus($this.ComplianceCard, "Fehler", [Color]::Red)
             }
             
             $this.ProgressBar.Value = 100
-            $this.AddLog("=== PRUEFUNG ABGESCHLOSSEN ===", [Color]::Blue)
+            
+            $this.AddLog("`n========================================", [Color]::Blue)
+            $this.AddLog("  PRUEFUNG ABGESCHLOSSEN", [Color]::Blue)
+            $this.AddLog("========================================", [Color]::Blue)
+            
             $this.StatusLabel.Text = "Pruefung abgeschlossen"
             
         } catch {
-            $errorMsg = "FEHLER: $($_.Exception.Message)"
-            $this.AddLog($errorMsg, [Color]::Red)
-            $this.AddLog("Position: $($_.InvocationInfo.PositionMessage)", [Color]::Red)
-            
-            [MessageBox]::Show($errorMsg, "Fehler", [MessageBoxButtons]::OK, [MessageBoxIcon]::Error)
-            
-            $this.StatusLabel.Text = "Fehler bei der Pruefung"
+            $errorMsg = $_.Exception.Message
+            $this.AddLog("`n[FEHLER] $errorMsg", [Color]::Red)
+            $this.StatusLabel.Text = "Fehler bei Pruefung"
         } finally {
             $this.StartButton.Enabled = $true
             $this.ProgressBar.Visible = $false
         }
     }
     
-    [void]UpdateSystemTab([PSObject]$systemInfo) {
-        $this.SystemInfoBox.Clear()
-        $this.SystemInfoBox.SelectionFont = New-Object Drawing.Font("Consolas", 10, [FontStyle]::Bold)
-        $this.SystemInfoBox.SelectionColor = [Color]::DarkBlue
-        $this.SystemInfoBox.AppendText("=== SYSTEM-INFORMATIONEN ===`r`n`r`n")
+    [void]UpdateSystemTab([hashtable]$data) {
+        $this.SystemDetailsBox.Clear()
+        $this.SystemDetailsBox.AppendText("=== SYSTEM-INFORMATIONEN ===`n`n")
         
-        $this.SystemInfoBox.SelectionFont = New-Object Drawing.Font("Consolas", 9)
-        $this.SystemInfoBox.SelectionColor = [Color]::Black
-        
-        if ($systemInfo.Computername) {
-            $this.SystemInfoBox.AppendText("Computername: $($systemInfo.Computername)`r`n")
-        }
-        if ($systemInfo.OS) {
-            $this.SystemInfoBox.AppendText("Betriebssystem: $($systemInfo.OS)`r`n")
-        }
-        if ($systemInfo.CPU) {
-            $this.SystemInfoBox.AppendText("CPU: $($systemInfo.CPU) ($($systemInfo.CPUCores) Cores)`r`n")
-        }
-        if ($systemInfo.RAM) {
-            $this.SystemInfoBox.AppendText("RAM: $($systemInfo.RAM) GB`r`n")
-        }
-        if ($systemInfo.DotNetVersion) {
-            $this.SystemInfoBox.AppendText(".NET Framework: $($systemInfo.DotNetVersion)`r`n")
-        }
-        if ($systemInfo.PowerShellVersion) {
-            $this.SystemInfoBox.AppendText("PowerShell: $($systemInfo.PowerShellVersion)`r`n")
-        }
-        
-        if ($systemInfo.Disks) {
-            $this.SystemInfoBox.AppendText("`r`n=== FESTPLATTEN ===`r`n")
-            foreach ($disk in $systemInfo.Disks) {
-                $this.SystemInfoBox.AppendText("Laufwerk $($disk.Drive): $($disk.SizeGB) GB gesamt`r`n")
-                $this.SystemInfoBox.AppendText("  Frei: $($disk.FreeGB) GB ($($disk.FreePercent) Prozent)`r`n")
+        if ($data) {
+            $this.SystemDetailsBox.AppendText("Computername: $($data.Computername)`n")
+            $this.SystemDetailsBox.AppendText("Betriebssystem: $($data.OS)`n")
+            $this.SystemDetailsBox.AppendText("CPU: $($data.CPU)`n")
+            $this.SystemDetailsBox.AppendText("RAM: $($data.TotalRAM) GB`n")
+            $this.SystemDetailsBox.AppendText(".NET Framework: $($data.DotNetVersion)`n")
+            $this.SystemDetailsBox.AppendText("PowerShell: $($data.PSVersion)`n`n")
+            
+            $this.SystemDetailsBox.AppendText("=== FESTPLATTEN ===`n")
+            foreach ($disk in $data.Disks) {
+                $this.SystemDetailsBox.AppendText("Laufwerk $($disk.DeviceID) $([math]::Round($disk.Size / 1GB, 2)) GB gesamt`n")
+                $this.SystemDetailsBox.AppendText("  Frei: $([math]::Round($disk.FreeSpace / 1GB, 2)) GB`n")
             }
         }
     }
     
-    [void]UpdateNetworkTab([PSObject]$networkInfo) {
-        $this.NetworkInfoBox.Clear()
-        $this.NetworkInfoBox.SelectionFont = New-Object Drawing.Font("Consolas", 10, [FontStyle]::Bold)
-        $this.NetworkInfoBox.SelectionColor = [Color]::DarkBlue
-        $this.NetworkInfoBox.AppendText("=== NETZWERK-KONFIGURATION ===`r`n`r`n")
+    [void]UpdateNetworkTab([hashtable]$data) {
+        $this.NetworkDetailsBox.Clear()
+        $this.NetworkDetailsBox.AppendText("=== NETZWERK-KONFIGURATION ===`n`n")
         
-        $this.NetworkInfoBox.SelectionFont = New-Object Drawing.Font("Consolas", 9)
-        $this.NetworkInfoBox.SelectionColor = [Color]::Black
-        
-        if ($networkInfo.Adapters) {
-            $this.NetworkInfoBox.AppendText("=== NETZWERK-ADAPTER ===`r`n")
-            foreach ($adapter in $networkInfo.Adapters) {
-                $this.NetworkInfoBox.AppendText("$($adapter.Name): $($adapter.IPAddress)`r`n")
-                if ($adapter.Speed) {
-                    $this.NetworkInfoBox.AppendText("  Geschwindigkeit: $($adapter.Speed)`r`n")
-                }
+        if ($data -and $data.Adapters) {
+            foreach ($adapter in $data.Adapters) {
+                $this.NetworkDetailsBox.AppendText("Adapter: $($adapter.Name)`n")
+                $this.NetworkDetailsBox.AppendText("  IP: $($adapter.IPAddress)`n")
+                $this.NetworkDetailsBox.AppendText("  Geschwindigkeit: $($adapter.Speed)`n`n")
             }
         }
         
-        if ($networkInfo.Ports) {
-            $this.NetworkInfoBox.AppendText("`r`n=== PORT-STATUS ===`r`n")
-            foreach ($port in $networkInfo.Ports) {
+        if ($data -and $data.Ports) {
+            $this.NetworkDetailsBox.AppendText("`n=== PORT-STATUS ===`n")
+            foreach ($port in $data.Ports) {
                 $status = if ($port.Open) { "OFFEN" } else { "GESCHLOSSEN" }
-                $color = if ($port.Open) { [Color]::Green } else { [Color]::Red }
-                
-                $this.NetworkInfoBox.SelectionColor = $color
-                $this.NetworkInfoBox.AppendText("Port $($port.Port) ($($port.Service)): $status`r`n")
-                $this.NetworkInfoBox.SelectionColor = [Color]::Black
-                
-                if ($port.Process) {
-                    $this.NetworkInfoBox.AppendText("  Prozess: $($port.Process)`r`n")
-                }
+                $this.NetworkDetailsBox.AppendText("Port $($port.Port) ($($port.Service)): $status`n")
             }
         }
-        
-        if ($networkInfo.FirewallStatus) {
-            $this.NetworkInfoBox.AppendText("`r`n=== FIREWALL-STATUS ===`r`n")
-            $this.NetworkInfoBox.AppendText("Domain: $($networkInfo.FirewallStatus.Domain)`r`n")
-            $this.NetworkInfoBox.AppendText("Private: $($networkInfo.FirewallStatus.Private)`r`n")
-            $this.NetworkInfoBox.AppendText("Public: $($networkInfo.FirewallStatus.Public)`r`n")
+    }
+    
+    [void]UpdateCardStatus([GroupBox]$card, [string]$newStatus, [Color]$color) {
+        $cardStatusLabel = $card.Controls | Where-Object { $_.Name -eq "StatusLabel" }
+        if ($cardStatusLabel) {
+            $cardStatusLabel.Text = $newStatus
+            $cardStatusLabel.ForeColor = $color
+            $card.Refresh()
         }
     }
     
@@ -400,7 +334,7 @@ class MainWindow {
         $this.LogBox.SelectionColor = [Color]::Gray
         $this.LogBox.AppendText("[$timestamp] ")
         $this.LogBox.SelectionColor = $color
-        $this.LogBox.AppendText("$message`r`n")
+        $this.LogBox.AppendText("$message`n")
         $this.LogBox.ScrollToCaret()
         $this.Form.Refresh()
     }
@@ -408,21 +342,19 @@ class MainWindow {
     [void]ExportReport() {
         try {
             $saveDialog = New-Object SaveFileDialog
-            $saveDialog.Filter = "HTML Report (*.html)|*.html|Text File (*.txt)|*.txt"
-            $saveDialog.FileName = "Sage100_ServerCheck_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+            $saveDialog.Filter = "HTML Datei (*.html)|*.html"
+            $saveDialog.FileName = "Sage100-ServerCheck-Report-$(Get-Date -Format 'yyyyMMdd-HHmmss').html"
             
-            if ($saveDialog.ShowDialog() -eq [DialogResult]::OK) {
-                if (Get-Command -Name "Export-HTMLReport" -ErrorAction SilentlyContinue) {
-                    Export-HTMLReport -CheckResults $this.CheckResults -OutputPath $saveDialog.FileName
-                    [MessageBox]::Show("Report erfolgreich exportiert nach:`n$($saveDialog.FileName)", "Export erfolgreich", [MessageBoxButtons]::OK, [MessageBoxIcon]::Information)
+            if ($saveDialog.ShowDialog() -eq "OK") {
+                if (Get-Command -Name "Export-HtmlReport" -ErrorAction SilentlyContinue) {
+                    Export-HtmlReport -OutputPath $saveDialog.FileName
+                    [MessageBox]::Show("Report erfolgreich exportiert nach:`n$($saveDialog.FileName)", "Export erfolgreich")
                 } else {
-                    # Fallback: Simple Text Export
-                    $this.LogBox.Text | Out-File -FilePath $saveDialog.FileName -Encoding UTF8
-                    [MessageBox]::Show("Log erfolgreich exportiert nach:`n$($saveDialog.FileName)", "Export erfolgreich", [MessageBoxButtons]::OK, [MessageBoxIcon]::Information)
+                    [MessageBox]::Show("Export-Funktion nicht verfuegbar", "Fehler")
                 }
             }
         } catch {
-            [MessageBox]::Show("Fehler beim Export: $($_.Exception.Message)", "Fehler", [MessageBoxButtons]::OK, [MessageBoxIcon]::Error)
+            [MessageBox]::Show("Fehler beim Export: $($_.Exception.Message)", "Fehler")
         }
     }
     
