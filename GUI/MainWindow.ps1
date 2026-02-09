@@ -4,9 +4,9 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# =====================================
+# ===================================
 # GUI-Klasse Definition
-# =====================================
+# ===================================
 class MainWindow {
     [System.Windows.Forms.Form]$Form
     [System.Windows.Forms.TabControl]$TabControl
@@ -179,21 +179,21 @@ class MainWindow {
         $titleLabel.Size = New-Object System.Drawing.Size(260, 25)
         $card.Controls.Add($titleLabel)
         
-        $statusLabel = New-Object System.Windows.Forms.Label
-        $statusLabel.Text = $status
-        $statusLabel.Location = New-Object System.Drawing.Point(10, 45)
-        $statusLabel.Size = New-Object System.Drawing.Size(260, 60)
-        $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-        $statusLabel.Name = "StatusLabel"
+        $cardStatusLbl = New-Object System.Windows.Forms.Label
+        $cardStatusLbl.Text = $status
+        $cardStatusLbl.Location = New-Object System.Drawing.Point(10, 45)
+        $cardStatusLbl.Size = New-Object System.Drawing.Size(260, 60)
+        $cardStatusLbl.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+        $cardStatusLbl.Name = "StatusLabel"
         
         switch ($color) {
-            "Green" { $statusLabel.ForeColor = [System.Drawing.Color]::Green }
-            "Red" { $statusLabel.ForeColor = [System.Drawing.Color]::Red }
-            "Orange" { $statusLabel.ForeColor = [System.Drawing.Color]::Orange }
-            default { $statusLabel.ForeColor = [System.Drawing.Color]::Gray }
+            "Green" { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Green }
+            "Red" { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Red }
+            "Orange" { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Orange }
+            default { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Gray }
         }
         
-        $card.Controls.Add($statusLabel)
+        $card.Controls.Add($cardStatusLbl)
         
         return $card
     }
@@ -224,7 +224,7 @@ class MainWindow {
         $textBox.Multiline = $true
         $textBox.ScrollBars = "Vertical"
         $textBox.Dock = "Fill"
-        $textBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+        $textBox.Font = New-Object System.Windows.Forms.Font("Consolas", 9)
         $textBox.ReadOnly = $true
         $textBox.Name = "NetworkInfoBox"
         $tab.Controls.Add($textBox)
@@ -342,14 +342,14 @@ class MainWindow {
         $card = $cardsPanel.Controls[$cardName]
         
         if ($card) {
-            $statusLabel = $card.Controls["StatusLabel"]
-            $statusLabel.Text = $status
+            $cardStatusLbl = $card.Controls["StatusLabel"]
+            $cardStatusLbl.Text = $status
             
             switch ($color) {
-                "Green" { $statusLabel.ForeColor = [System.Drawing.Color]::Green }
-                "Red" { $statusLabel.ForeColor = [System.Drawing.Color]::Red }
-                "Orange" { $statusLabel.ForeColor = [System.Drawing.Color]::Orange }
-                default { $statusLabel.ForeColor = [System.Drawing.Color]::Gray }
+                "Green" { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Green }
+                "Red" { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Red }
+                "Orange" { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Orange }
+                default { $cardStatusLbl.ForeColor = [System.Drawing.Color]::Gray }
             }
         }
     }
