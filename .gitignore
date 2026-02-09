@@ -1,0 +1,36 @@
+# Logs
+Logs/*.log
+Logs/*.html
+*.log
+
+# Config mit sensiblen Daten (optional)
+# Config/config.json
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# PowerShell
+*.ps1xml
+
+# Credentials
+*_password.txt
+credentials.json
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Backup Files
+*.bak
+*.backup
+*~
+
+# Reports (optional - auskommentieren wenn Reports committet werden sollen)
+# Reports/
+
+# Temp Files
+*.tmp
+*.temp
+~$*
