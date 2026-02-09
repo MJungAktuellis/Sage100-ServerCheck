@@ -11,7 +11,7 @@ class MainWindow {
     [ProgressBar]$ProgressBar
     [Label]$StatusLabel
     
-    # TextBoxen für alle Tabs
+    # TextBoxen fuer alle Tabs
     [RichTextBox]$SystemInfoBox
     [RichTextBox]$NetworkInfoBox
     [RichTextBox]$ComplianceInfoBox
@@ -195,14 +195,15 @@ class MainWindow {
         $titleLabel.AutoSize = $true
         $card.Controls.Add($titleLabel)
         
-        $statusLabel = New-Object Label
-        $statusLabel.Text = $status
-        $statusLabel.ForeColor = $statusColor
-        $statusLabel.Font = New-Object Font("Segoe UI", 9)
-        $statusLabel.Location = New-Object Point(15, 50)
-        $statusLabel.AutoSize = $true
-        $statusLabel.Name = "StatusLabel"
-        $card.Controls.Add($statusLabel)
+        # FIX: Umbenennung von $statusLabel zu $cardStatusLabel
+        $cardStatusLabel = New-Object Label
+        $cardStatusLabel.Text = $status
+        $cardStatusLabel.ForeColor = $statusColor
+        $cardStatusLabel.Font = New-Object Font("Segoe UI", 9)
+        $cardStatusLabel.Location = New-Object Point(15, 50)
+        $cardStatusLabel.AutoSize = $true
+        $cardStatusLabel.Name = "StatusLabel"
+        $card.Controls.Add($cardStatusLabel)
         
         return $card
     }
@@ -210,10 +211,11 @@ class MainWindow {
     [void]UpdateStatusCard([string]$cardName, [string]$newStatus, [Color]$color) {
         if ($this.StatusCards.ContainsKey($cardName)) {
             $card = $this.StatusCards[$cardName]
-            $statusLabel = $card.Controls | Where-Object { $_.Name -eq "StatusLabel" }
-            if ($statusLabel) {
-                $statusLabel.Text = $newStatus
-                $statusLabel.ForeColor = $color
+            # FIX: Umbenennung von $statusLabel zu $cardStatusLabel
+            $cardStatusLabel = $card.Controls | Where-Object { $_.Name -eq "StatusLabel" }
+            if ($cardStatusLabel) {
+                $cardStatusLabel.Text = $newStatus
+                $cardStatusLabel.ForeColor = $color
                 $this.Form.Refresh()
                 [Application]::DoEvents()
             }
