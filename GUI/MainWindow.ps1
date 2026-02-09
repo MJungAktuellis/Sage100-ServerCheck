@@ -58,7 +58,7 @@ class MainWindow {
 
         # Untertitel
         $subtitleLabel = New-Object System.Windows.Forms.Label
-        $subtitleLabel.Text = "Automatische Systemprüfung und Compliance-Check"
+        $subtitleLabel.Text = "Automatische Systempruefung und Compliance-Check"
         $subtitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10)
         $subtitleLabel.ForeColor = [System.Drawing.Color]::White
         $subtitleLabel.Location = New-Object System.Drawing.Point(20, 48)
@@ -67,7 +67,7 @@ class MainWindow {
 
         # Start Button
         $this.StartButton = New-Object System.Windows.Forms.Button
-        $this.StartButton.Text = "▶ Vollständige Prüfung starten"
+        $this.StartButton.Text = "> Vollstaendige Pruefung starten"
         $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
         $this.StartButton.Size = New-Object System.Drawing.Size(280, 50)
         $this.StartButton.Location = New-Object System.Drawing.Point(890, 15)
@@ -97,7 +97,7 @@ class MainWindow {
     # Overview Tab
     [void] CreateOverviewTab() {
         $tab = New-Object System.Windows.Forms.TabPage
-        $tab.Text = "📊 Übersicht"
+        $tab.Text = "Uebersicht"
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
@@ -109,9 +109,9 @@ class MainWindow {
         $tab.Controls.Add($dashPanel)
 
         # Status Cards
-        $this.StatusCards["SystemStatusCard"] = $this.CreateStatusCard("System-Check", "Nicht geprüft", "Gray")
-        $this.StatusCards["NetworkStatusCard"] = $this.CreateStatusCard("Netzwerk-Check", "Nicht geprüft", "Gray")
-        $this.StatusCards["ComplianceStatusCard"] = $this.CreateStatusCard("Compliance-Check", "Nicht geprüft", "Gray")
+        $this.StatusCards["SystemStatusCard"] = $this.CreateStatusCard("System-Check", "Nicht geprueft", "Gray")
+        $this.StatusCards["NetworkStatusCard"] = $this.CreateStatusCard("Netzwerk-Check", "Nicht geprueft", "Gray")
+        $this.StatusCards["ComplianceStatusCard"] = $this.CreateStatusCard("Compliance-Check", "Nicht geprueft", "Gray")
 
         $dashPanel.Controls.Add($this.StatusCards["SystemStatusCard"])
         $dashPanel.Controls.Add($this.StatusCards["NetworkStatusCard"])
@@ -131,7 +131,7 @@ class MainWindow {
     # System-Check Tab
     [void] CreateSystemTab() {
         $tab = New-Object System.Windows.Forms.TabPage
-        $tab.Text = "💻 System"
+        $tab.Text = "System"
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
@@ -148,7 +148,7 @@ class MainWindow {
     # Netzwerk-Check Tab
     [void] CreateNetworkTab() {
         $tab = New-Object System.Windows.Forms.TabPage
-        $tab.Text = "🌐 Netzwerk"
+        $tab.Text = "Netzwerk"
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
@@ -165,7 +165,7 @@ class MainWindow {
     # Compliance-Check Tab
     [void] CreateComplianceTab() {
         $tab = New-Object System.Windows.Forms.TabPage
-        $tab.Text = "✅ Compliance"
+        $tab.Text = "Compliance"
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
@@ -182,7 +182,7 @@ class MainWindow {
     # Debug-Logs Tab
     [void] CreateLogsTab() {
         $tab = New-Object System.Windows.Forms.TabPage
-        $tab.Text = "📝 Debug-Logs"
+        $tab.Text = "Debug-Logs"
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
@@ -253,7 +253,7 @@ class MainWindow {
     [void] RunFullCheck() {
         try {
             $this.ResultBox.Clear()
-            $this.ResultBox.AppendText("=== STARTE VOLLSTÄNDIGE SYSTEMPRÜFUNG ===`r`n`r`n")
+            $this.ResultBox.AppendText("=== STARTE VOLLSTAENDIGE SYSTEMPRUEFUNG ===`r`n`r`n")
             
             # 1. System-Check
             $this.ResultBox.AppendText("1. System-Check...`r`n")
@@ -297,10 +297,10 @@ class MainWindow {
                 throw "Funktion 'Test-Sage100Compliance' nicht gefunden!"
             }
             
-            $this.ResultBox.AppendText("`r`n=== PRÜFUNG ABGESCHLOSSEN ===`r`n")
+            $this.ResultBox.AppendText("`r`n=== PRUEFUNG ABGESCHLOSSEN ===`r`n")
             
             [System.Windows.Forms.MessageBox]::Show(
-                "Alle Prüfungen wurden erfolgreich abgeschlossen!",
+                "Alle Pruefungen wurden erfolgreich abgeschlossen!",
                 "Erfolg",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Information
@@ -314,7 +314,7 @@ class MainWindow {
             
             [System.Windows.Forms.MessageBox]::Show(
                 $errorMsg,
-                "Fehler bei der Prüfung",
+                "Fehler bei der Pruefung",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
             )
