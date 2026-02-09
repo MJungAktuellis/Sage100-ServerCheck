@@ -100,9 +100,10 @@ class MainWindow {
         $this.ProgressBar.Size = New-Object Size(200, 16)
         $statusStrip.Items.Add($this.ProgressBar)
         
-        # Event Handlers
+        # Event Handlers - FIX: Speichere Referenz auf $this
+        $window = $this
         $this.StartButton.Add_Click({
-            $this.RunFullCheck()
+            $window.RunFullCheck()
         })
     }
     
