@@ -4,9 +4,9 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# =========================================
+# =====================================
 # GUI-Klasse Definition
-# =========================================
+# =====================================
 class MainWindow {
     [System.Windows.Forms.Form]$Form
     [System.Windows.Forms.TabControl]$TabControl
@@ -23,7 +23,6 @@ class MainWindow {
     # Konstruktor
     MainWindow() {
         $this.InitializeComponents()
-        $this.SetupEventHandlers()
     }
     
     # Komponenten initialisieren
@@ -270,16 +269,6 @@ class MainWindow {
         $tab.Controls.Add($this.LogsBox)
         
         $this.TabControl.TabPages.Add($tab)
-    }
-    
-    # Event-Handler einrichten
-    [void] SetupEventHandlers() {
-        $window = $this
-        
-        # Start-Button Click - DIREKTER Zugriff auf $this.StartButton
-        $this.StartButton.Add_Click({
-            $window.RunFullCheck()
-        })
     }
     
     # Vollstaendige Pruefung
