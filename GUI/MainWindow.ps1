@@ -1,364 +1,341 @@
-# GUI/MainWindow.ps1
-# Hauptfenster der Sage 100 Server Check GUI - FINALE VERSION
+# ===================================================================
+# MainWindow.ps1 - VOLLSTÄNDIG ÜBERARBEITETE VERSION MIT TABCONTROL
+# ===================================================================
 
-using namespace System.Windows.Forms
-using namespace System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 
 class MainWindow {
-    [Form]$Form
-    [TabControl]$TabControl
-    [Button]$StartButton
-    [MenuStrip]$MenuStrip
-    [ToolStripProgressBar]$ProgressBar
-    [ToolStripStatusLabel]$StatusLabel
-    
-    # Tab Content Controls
-    [RichTextBox]$SystemDetailsBox
-    [RichTextBox]$NetworkDetailsBox
-    [RichTextBox]$LogBox
-    
-    # Status Cards
-    [GroupBox]$SystemCard
-    [GroupBox]$NetworkCard
-    [GroupBox]$ComplianceCard
-    
+    [System.Windows.Forms.Form]$Form
+    [System.Windows.Forms.TabControl]$TabControl
+    [System.Windows.Forms.RichTextBox]$SystemTextBox
+    [System.Windows.Forms.RichTextBox]$NetworkTextBox
+    [System.Windows.Forms.RichTextBox]$LogTextBox
+    [System.Windows.Forms.Label]$SystemStatusLabel
+    [System.Windows.Forms.Label]$NetworkStatusLabel
+    [System.Windows.Forms.Label]$ComplianceStatusLabel
+    [System.Windows.Forms.Button]$StartButton
+    [System.Windows.Forms.ProgressBar]$ProgressBar
+    [System.Windows.Forms.Label]$StatusLabel
+
     MainWindow() {
-        $this.InitializeComponents()
-        # Event-Handler werden extern in Sage100-ServerCheck-GUI.ps1 registriert
+        $this.InitializeForm()
+        $this.CreateMenuBar()
+        $this.CreateTabControl()
+        $this.CreateStatusBar()
     }
-    
-    [void]InitializeComponents() {
-        # === HAUPTFENSTER ===
-        $this.Form = New-Object Form
+
+    [void]InitializeForm() {
+        $this.Form = New-Object System.Windows.Forms.Form
         $this.Form.Text = "Sage 100 Server Check & Setup Tool v2.0"
-        $this.Form.Size = New-Object Size(1400, 900)
+        $this.Form.Size = New-Object System.Drawing.Size(1400, 900)
         $this.Form.StartPosition = "CenterScreen"
-        $this.Form.MinimumSize = New-Object Size(1200, 700)
+        $this.Form.FormBorderStyle = "FixedSingle"
+        $this.Form.MaximizeBox = $true
+        $this.Form.MinimizeBox = $true
+    }
+
+    [void]CreateMenuBar() {
+        $menuStrip = New-Object System.Windows.Forms.MenuStrip
         
-        # === MENU BAR ===
-        $this.MenuStrip = New-Object MenuStrip
+        # Datei-Menü
+        $fileMenu = New-Object System.Windows.Forms.ToolStripMenuItem
+        $fileMenu.Text = "Datei"
         
-        $menuFile = New-Object ToolStripMenuItem("Datei")
-        $menuExport = New-Object ToolStripMenuItem("Export Report")
-        $menuExport.Add_Click({ $this.ExportReport() })
-        $menuExit = New-Object ToolStripMenuItem("Beenden")
-        $menuExit.Add_Click({ $this.Form.Close() })
-        $menuFile.DropDownItems.Add($menuExport)
-        $menuFile.DropDownItems.Add($menuExit)
+        $exportItem = New-Object System.Windows.Forms.ToolStripMenuItem
+        $exportItem.Text = "Bericht exportieren..."
+        $exportItem.Add_Click({ $this.ExportReport() })
         
-        $menuHelp = New-Object ToolStripMenuItem("Hilfe")
-        $menuAbout = New-Object ToolStripMenuItem("Ueber...")
-        $menuAbout.Add_Click({ 
-            [MessageBox]::Show("Sage 100 Server Check Tool v2.0`n`nProfessionelles Prueftool fuer Sage 100 Server", "Info") 
-        })
-        $menuHelp.DropDownItems.Add($menuAbout)
+        $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem
+        $exitItem.Text = "Beenden"
+        $exitItem.Add_Click({ $this.Form.Close() })
         
-        $this.MenuStrip.Items.Add($menuFile)
-        $this.MenuStrip.Items.Add($menuHelp)
-        $this.Form.Controls.Add($this.MenuStrip)
+        $fileMenu.DropDownItems.Add($exportItem)
+        $fileMenu.DropDownItems.Add($exitItem)
         
-        # === HEADER PANEL ===
-        $headerPanel = New-Object Panel
+        # Hilfe-Menü
+        $helpMenu = New-Object System.Windows.Forms.ToolStripMenuItem
+        $helpMenu.Text = "Hilfe"
+        
+        $aboutItem = New-Object System.Windows.Forms.ToolStripMenuItem
+        $aboutItem.Text = "Über..."
+        $aboutItem.Add_Click({ $this.ShowAbout() })
+        
+        $helpMenu.DropDownItems.Add($aboutItem)
+        
+        $menuStrip.Items.Add($fileMenu)
+        $menuStrip.Items.Add($helpMenu)
+        
+        $this.Form.Controls.Add($menuStrip)
+        $this.Form.MainMenuStrip = $menuStrip
+    }
+
+    [void]CreateTabControl() {
+        # TabControl erstellen
+        $this.TabControl = New-Object System.Windows.Forms.TabControl
+        $this.TabControl.Location = New-Object System.Drawing.Point(0, 24)
+        $this.TabControl.Size = New-Object System.Drawing.Size(1384, 815)
+        $this.TabControl.Anchor = "Top,Bottom,Left,Right"
+        
+        # Tab 1: Dashboard
+        $dashboardTab = New-Object System.Windows.Forms.TabPage
+        $dashboardTab.Text = "Dashboard"
+        $dashboardTab.BackColor = [System.Drawing.Color]::WhiteSmoke
+        
+        $this.CreateDashboardContent($dashboardTab)
+        
+        # Tab 2: System-Details
+        $systemTab = New-Object System.Windows.Forms.TabPage
+        $systemTab.Text = "System-Details"
+        
+        $this.SystemTextBox = New-Object System.Windows.Forms.RichTextBox
+        $this.SystemTextBox.Dock = "Fill"
+        $this.SystemTextBox.Font = New-Object System.Drawing.Font("Consolas", 10)
+        $this.SystemTextBox.ReadOnly = $true
+        $this.SystemTextBox.Text = "Noch keine Pruefung durchgefuehrt.`n`nKlicke auf 'Vollstaendige Pruefung starten' um Systemdaten zu sammeln."
+        $systemTab.Controls.Add($this.SystemTextBox)
+        
+        # Tab 3: Netzwerk-Details
+        $networkTab = New-Object System.Windows.Forms.TabPage
+        $networkTab.Text = "Netzwerk-Details"
+        
+        $this.NetworkTextBox = New-Object System.Windows.Forms.RichTextBox
+        $this.NetworkTextBox.Dock = "Fill"
+        $this.NetworkTextBox.Font = New-Object System.Drawing.Font("Consolas", 10)
+        $this.NetworkTextBox.ReadOnly = $true
+        $this.NetworkTextBox.Text = "Noch keine Pruefung durchgefuehrt.`n`nKlicke auf 'Vollstaendige Pruefung starten' um Netzwerkdaten zu sammeln."
+        $networkTab.Controls.Add($this.NetworkTextBox)
+        
+        # Tab 4: Logs
+        $logTab = New-Object System.Windows.Forms.TabPage
+        $logTab.Text = "Logs"
+        
+        $this.LogTextBox = New-Object System.Windows.Forms.RichTextBox
+        $this.LogTextBox.Dock = "Fill"
+        $this.LogTextBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+        $this.LogTextBox.ReadOnly = $true
+        $this.LogTextBox.Text = "[$(Get-Date -Format 'HH:mm:ss')] GUI gestartet`n"
+        $logTab.Controls.Add($this.LogTextBox)
+        
+        # Tabs hinzufügen
+        $this.TabControl.TabPages.Add($dashboardTab)
+        $this.TabControl.TabPages.Add($systemTab)
+        $this.TabControl.TabPages.Add($networkTab)
+        $this.TabControl.TabPages.Add($logTab)
+        
+        $this.Form.Controls.Add($this.TabControl)
+    }
+
+    [void]CreateDashboardContent([System.Windows.Forms.TabPage]$tab) {
+        # Header-Panel
+        $headerPanel = New-Object System.Windows.Forms.Panel
+        $headerPanel.Height = 80
         $headerPanel.Dock = "Top"
-        $headerPanel.Height = 60
-        $headerPanel.BackColor = [ColorTranslator]::FromHtml("#0078D4")
-        $this.Form.Controls.Add($headerPanel)
+        $headerPanel.BackColor = [System.Drawing.Color]::FromArgb(0, 102, 204)
         
-        $titleLabel = New-Object Label
+        $titleLabel = New-Object System.Windows.Forms.Label
         $titleLabel.Text = "Sage 100 Server Check Tool"
-        $titleLabel.ForeColor = [Color]::White
-        $titleLabel.Font = New-Object Font("Segoe UI", 14, [FontStyle]::Bold)
-        $titleLabel.Location = New-Object Point(20, 18)
+        $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 20, [System.Drawing.FontStyle]::Bold)
+        $titleLabel.ForeColor = [System.Drawing.Color]::White
+        $titleLabel.Location = New-Object System.Drawing.Point(20, 15)
         $titleLabel.AutoSize = $true
         $headerPanel.Controls.Add($titleLabel)
         
-        # Start Button (rechts im Header)
-        $this.StartButton = New-Object Button
+        # Start-Button
+        $this.StartButton = New-Object System.Windows.Forms.Button
         $this.StartButton.Text = "> Vollstaendige Pruefung starten"
-        $this.StartButton.Size = New-Object Size(280, 40)
-        $this.StartButton.BackColor = [ColorTranslator]::FromHtml("#00CC00")
-        $this.StartButton.ForeColor = [Color]::White
-        $this.StartButton.Font = New-Object Font("Segoe UI", 10, [FontStyle]::Bold)
-        $this.StartButton.FlatStyle = "Flat"
+        $this.StartButton.Size = New-Object System.Drawing.Size(280, 45)
+        $this.StartButton.Location = New-Object System.Drawing.Point(1070, 18)
+        $this.StartButton.BackColor = [System.Drawing.Color]::FromArgb(0, 200, 0)
+        $this.StartButton.ForeColor = [System.Drawing.Color]::White
+        $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
         $this.StartButton.Cursor = [System.Windows.Forms.Cursors]::Hand
-        $this.StartButton.Anchor = "Top,Right"
         $headerPanel.Controls.Add($this.StartButton)
         
-        # Responsive Button-Position
-        $headerPanel.Add_Resize({
-            $this.StartButton.Location = New-Object Point(($headerPanel.Width - 300), 10)
-        })
-        $this.StartButton.Location = New-Object Point(($headerPanel.Width - 300), 10)
+        $tab.Controls.Add($headerPanel)
         
-        # === TAB CONTROL ===
-        $this.TabControl = New-Object TabControl
-        $this.TabControl.Dock = "Fill"
-        $this.TabControl.Font = New-Object Font("Segoe UI", 10)
-        $this.Form.Controls.Add($this.TabControl)
+        # Dashboard-Inhalt Panel
+        $dashPanel = New-Object System.Windows.Forms.Panel
+        $dashPanel.Dock = "Fill"
+        $dashPanel.Padding = New-Object System.Windows.Forms.Padding(20)
         
-        $this.InitializeTabs()
+        # Status-Cards Panel
+        $cardsPanel = New-Object System.Windows.Forms.Panel
+        $cardsPanel.Location = New-Object System.Drawing.Point(20, 20)
+        $cardsPanel.Size = New-Object System.Drawing.Size(1320, 250)
         
-        # === STATUS BAR ===
-        $this.InitializeStatusBar()
+        # System-Card
+        $systemCard = $this.CreateStatusCard("System-Check", "Nicht geprueft", 20)
+        $this.SystemStatusLabel = $systemCard.Controls[1]
+        $cardsPanel.Controls.Add($systemCard)
+        
+        # Netzwerk-Card
+        $networkCard = $this.CreateStatusCard("Netzwerk-Check", "Nicht geprueft", 460)
+        $this.NetworkStatusLabel = $networkCard.Controls[1]
+        $cardsPanel.Controls.Add($networkCard)
+        
+        # Compliance-Card
+        $complianceCard = $this.CreateStatusCard("Compliance-Check", "Nicht geprueft", 900)
+        $this.ComplianceStatusLabel = $complianceCard.Controls[1]
+        $cardsPanel.Controls.Add($complianceCard)
+        
+        $dashPanel.Controls.Add($cardsPanel)
+        $tab.Controls.Add($dashPanel)
     }
-    
-    [void]InitializeTabs() {
-        # === TAB 1: DASHBOARD ===
-        $dashboardTab = [TabPage]::new("Dashboard")
-        $this.TabControl.Controls.Add($dashboardTab)
-        $this.InitializeDashboard($dashboardTab)
+
+    [System.Windows.Forms.Panel]CreateStatusCard([string]$title, [string]$status, [int]$xPos) {
+        $card = New-Object System.Windows.Forms.Panel
+        $card.Size = New-Object System.Drawing.Size(400, 220)
+        $card.Location = New-Object System.Drawing.Point($xPos, 0)
+        $card.BackColor = [System.Drawing.Color]::White
+        $card.BorderStyle = "FixedSingle"
         
-        # === TAB 2: SYSTEM-DETAILS ===
-        $systemTab = [TabPage]::new("System-Details")
-        $this.TabControl.Controls.Add($systemTab)
+        $titleLabel = New-Object System.Windows.Forms.Label
+        $titleLabel.Text = $title
+        $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+        $titleLabel.Location = New-Object System.Drawing.Point(15, 15)
+        $titleLabel.AutoSize = $true
+        $card.Controls.Add($titleLabel)
         
-        $this.SystemDetailsBox = New-Object RichTextBox
-        $this.SystemDetailsBox.Dock = "Fill"
-        $this.SystemDetailsBox.Font = New-Object Font("Consolas", 9)
-        $this.SystemDetailsBox.ReadOnly = $true
-        $this.SystemDetailsBox.BackColor = [Color]::White
-        $this.SystemDetailsBox.Text = "Klicken Sie auf 'Vollstaendige Pruefung starten', um System-Details anzuzeigen."
-        $systemTab.Controls.Add($this.SystemDetailsBox)
-        
-        # === TAB 3: NETZWERK-DETAILS ===
-        $networkTab = [TabPage]::new("Netzwerk-Details")
-        $this.TabControl.Controls.Add($networkTab)
-        
-        $this.NetworkDetailsBox = New-Object RichTextBox
-        $this.NetworkDetailsBox.Dock = "Fill"
-        $this.NetworkDetailsBox.Font = New-Object Font("Consolas", 9)
-        $this.NetworkDetailsBox.ReadOnly = $true
-        $this.NetworkDetailsBox.BackColor = [Color]::White
-        $this.NetworkDetailsBox.Text = "Klicken Sie auf 'Vollstaendige Pruefung starten', um Netzwerk-Details anzuzeigen."
-        $networkTab.Controls.Add($this.NetworkDetailsBox)
-        
-        # === TAB 4: LOGS ===
-        $logTab = [TabPage]::new("Logs")
-        $this.TabControl.Controls.Add($logTab)
-        
-        $this.LogBox = New-Object RichTextBox
-        $this.LogBox.Dock = "Fill"
-        $this.LogBox.Font = New-Object Font("Consolas", 9)
-        $this.LogBox.ReadOnly = $true
-        $this.LogBox.BackColor = [Color]::White
-        $logTab.Controls.Add($this.LogBox)
-    }
-    
-    [void]InitializeDashboard([TabPage]$tab) {
-        # Container für Status-Cards
-        $cardPanel = New-Object FlowLayoutPanel
-        $cardPanel.Dock = "Fill"
-        $cardPanel.Padding = New-Object Padding(20)
-        $cardPanel.FlowDirection = "LeftToRight"
-        $cardPanel.WrapContents = $true
-        $tab.Controls.Add($cardPanel)
-        
-        # Status Cards erstellen
-        $this.SystemCard = $this.CreateStatusCard("System-Check", "Nicht geprueft", [Color]::Gray)
-        $this.NetworkCard = $this.CreateStatusCard("Netzwerk-Check", "Nicht geprueft", [Color]::Gray)
-        $this.ComplianceCard = $this.CreateStatusCard("Compliance-Check", "Nicht geprueft", [Color]::Gray)
-        
-        $cardPanel.Controls.Add($this.SystemCard)
-        $cardPanel.Controls.Add($this.NetworkCard)
-        $cardPanel.Controls.Add($this.ComplianceCard)
-    }
-    
-    [GroupBox]CreateStatusCard([string]$title, [string]$status, [Color]$statusColor) {
-        $card = New-Object GroupBox
-        $card.Text = $title
-        $card.Size = New-Object Size(400, 180)
-        $card.Font = New-Object Font("Segoe UI", 11, [FontStyle]::Bold)
-        $card.Margin = New-Object Padding(10)
-        
-        $cardStatusLabel = New-Object Label
-        $cardStatusLabel.Name = "StatusLabel"
-        $cardStatusLabel.Text = $status
-        $cardStatusLabel.ForeColor = $statusColor
-        $cardStatusLabel.Font = New-Object Font("Segoe UI", 14, [FontStyle]::Bold)
-        $cardStatusLabel.Location = New-Object Point(20, 40)
-        $cardStatusLabel.AutoSize = $true
-        $card.Controls.Add($cardStatusLabel)
+        $statusLabel = New-Object System.Windows.Forms.Label
+        $statusLabel.Text = $status
+        $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12)
+        $statusLabel.ForeColor = [System.Drawing.Color]::Gray
+        $statusLabel.Location = New-Object System.Drawing.Point(15, 90)
+        $statusLabel.Size = New-Object System.Drawing.Size(370, 110)
+        $card.Controls.Add($statusLabel)
         
         return $card
     }
-    
-    [void]InitializeStatusBar() {
-        $statusBar = New-Object StatusStrip
+
+    [void]CreateStatusBar() {
+        $statusStrip = New-Object System.Windows.Forms.StatusStrip
         
-        $this.StatusLabel = New-Object ToolStripStatusLabel
+        $this.StatusLabel = New-Object System.Windows.Forms.ToolStripStatusLabel
         $this.StatusLabel.Text = "Bereit"
         $this.StatusLabel.Spring = $true
         $this.StatusLabel.TextAlign = "MiddleLeft"
         
-        $this.ProgressBar = New-Object ToolStripProgressBar
-        $this.ProgressBar.Size = New-Object Size(200, 16)
+        $this.ProgressBar = New-Object System.Windows.Forms.ToolStripProgressBar
+        $this.ProgressBar.Size = New-Object System.Drawing.Size(200, 16)
         $this.ProgressBar.Visible = $false
         
-        $statusBar.Items.Add($this.StatusLabel)
-        $statusBar.Items.Add($this.ProgressBar)
+        $statusStrip.Items.Add($this.StatusLabel)
+        $statusStrip.Items.Add($this.ProgressBar)
         
-        $this.Form.Controls.Add($statusBar)
+        $this.Form.Controls.Add($statusStrip)
     }
-    
-    [void]RunFullCheck() {
-        try {
-            $this.LogBox.Clear()
-            $this.AddLog("========================================", [Color]::Blue)
-            $this.AddLog("  VOLLSTAENDIGE SYSTEMPRUEFUNG GESTARTET", [Color]::Blue)
-            $this.AddLog("========================================`n", [Color]::Blue)
-            
-            $this.StatusLabel.Text = "Pruefung laeuft..."
-            $this.ProgressBar.Visible = $true
-            $this.ProgressBar.Value = 0
-            $this.StartButton.Enabled = $false
-            
-            # === 1. SYSTEM-CHECK ===
-            $this.AddLog("[1/3] Fuehre System-Check durch...`n", [Color]::DarkBlue)
-            $this.UpdateCardStatus($this.SystemCard, "Wird geprueft...", [Color]::Orange)
-            
-            if (Get-Command -Name "Get-SystemInformation" -ErrorAction SilentlyContinue) {
-                $systemInfo = Get-SystemInformation
-                $this.UpdateSystemTab($systemInfo)
-                $this.AddLog("  [OK] System-Check erfolgreich`n", [Color]::Green)
-                $this.UpdateCardStatus($this.SystemCard, "Erfolgreich geprueft", [Color]::Green)
-            } else {
-                $this.AddLog("  [FEHLER] Modul 'Get-SystemInformation' nicht gefunden`n", [Color]::Red)
-                $this.UpdateCardStatus($this.SystemCard, "Fehler", [Color]::Red)
-            }
-            
-            $this.ProgressBar.Value = 33
-            $this.Form.Refresh()
-            
-            # === 2. NETZWERK-CHECK ===
-            $this.AddLog("`n[2/3] Fuehre Netzwerk-Check durch...`n", [Color]::DarkBlue)
-            $this.UpdateCardStatus($this.NetworkCard, "Wird geprueft...", [Color]::Orange)
-            
-            if (Get-Command -Name "Test-NetworkConfiguration" -ErrorAction SilentlyContinue) {
-                $networkInfo = Test-NetworkConfiguration
-                $this.UpdateNetworkTab($networkInfo)
-                $this.AddLog("  [OK] Netzwerk-Check erfolgreich`n", [Color]::Green)
-                $this.UpdateCardStatus($this.NetworkCard, "Erfolgreich geprueft", [Color]::Green)
-            } else {
-                $this.AddLog("  [FEHLER] Modul 'Test-NetworkConfiguration' nicht gefunden`n", [Color]::Red)
-                $this.UpdateCardStatus($this.NetworkCard, "Fehler", [Color]::Red)
-            }
-            
-            $this.ProgressBar.Value = 66
-            $this.Form.Refresh()
-            
-            # === 3. COMPLIANCE-CHECK ===
-            $this.AddLog("`n[3/3] Fuehre Compliance-Check durch...`n", [Color]::DarkBlue)
-            $this.UpdateCardStatus($this.ComplianceCard, "Wird geprueft...", [Color]::Orange)
-            
-            if (Get-Command -Name "Test-Sage100Compliance" -ErrorAction SilentlyContinue) {
-                $complianceInfo = Test-Sage100Compliance
-                $this.AddLog("  [OK] Compliance-Check erfolgreich`n", [Color]::Green)
-                $this.UpdateCardStatus($this.ComplianceCard, "Erfolgreich geprueft", [Color]::Green)
-            } else {
-                $this.AddLog("  [FEHLER] Modul 'Test-Sage100Compliance' nicht gefunden`n", [Color]::Red)
-                $this.UpdateCardStatus($this.ComplianceCard, "Fehler", [Color]::Red)
-            }
-            
-            $this.ProgressBar.Value = 100
-            
-            $this.AddLog("`n========================================", [Color]::Blue)
-            $this.AddLog("  PRUEFUNG ABGESCHLOSSEN", [Color]::Blue)
-            $this.AddLog("========================================", [Color]::Blue)
-            
-            $this.StatusLabel.Text = "Pruefung abgeschlossen"
-            
-        } catch {
-            $errorMsg = $_.Exception.Message
-            $this.AddLog("`n[FEHLER] $errorMsg", [Color]::Red)
-            $this.StatusLabel.Text = "Fehler bei Pruefung"
-        } finally {
-            $this.StartButton.Enabled = $true
-            $this.ProgressBar.Visible = $false
-        }
-    }
-    
+
     [void]UpdateSystemTab([hashtable]$data) {
-        $this.SystemDetailsBox.Clear()
-        $this.SystemDetailsBox.AppendText("=== SYSTEM-INFORMATIONEN ===`n`n")
-        
-        if ($data) {
-            $this.SystemDetailsBox.AppendText("Computername: $($data.Computername)`n")
-            $this.SystemDetailsBox.AppendText("Betriebssystem: $($data.OS)`n")
-            $this.SystemDetailsBox.AppendText("CPU: $($data.CPU)`n")
-            $this.SystemDetailsBox.AppendText("RAM: $($data.TotalRAM) GB`n")
-            $this.SystemDetailsBox.AppendText(".NET Framework: $($data.DotNetVersion)`n")
-            $this.SystemDetailsBox.AppendText("PowerShell: $($data.PSVersion)`n`n")
-            
-            $this.SystemDetailsBox.AppendText("=== FESTPLATTEN ===`n")
-            foreach ($disk in $data.Disks) {
-                $this.SystemDetailsBox.AppendText("Laufwerk $($disk.DeviceID) $([math]::Round($disk.Size / 1GB, 2)) GB gesamt`n")
-                $this.SystemDetailsBox.AppendText("  Frei: $([math]::Round($disk.FreeSpace / 1GB, 2)) GB`n")
-            }
-        }
+        $text = @"
+========================================
+SYSTEM-INFORMATIONEN
+========================================
+
+Betriebssystem: $($data.SystemInfo.OS)
+Prozessor: $($data.SystemInfo.CPU)
+RAM: $($data.SystemInfo.RAM)
+Festplatte: $($data.SystemInfo.Disk)
+.NET Framework: $($data.SystemInfo.DotNet)
+PowerShell: $($data.SystemInfo.PowerShell)
+
+SQL Server Instanzen:
+$($data.SystemInfo.SQLInstances -join "`n  ")
+
+========================================
+SAGE 100 KOMPATIBILITÄT
+========================================
+
+$($data.ComplianceResults)
+"@
+        $this.SystemTextBox.Text = $text
+        $this.LogMessage("System-Tab aktualisiert")
     }
-    
+
     [void]UpdateNetworkTab([hashtable]$data) {
-        $this.NetworkDetailsBox.Clear()
-        $this.NetworkDetailsBox.AppendText("=== NETZWERK-KONFIGURATION ===`n`n")
-        
-        if ($data -and $data.Adapters) {
-            foreach ($adapter in $data.Adapters) {
-                $this.NetworkDetailsBox.AppendText("Adapter: $($adapter.Name)`n")
-                $this.NetworkDetailsBox.AppendText("  IP: $($adapter.IPAddress)`n")
-                $this.NetworkDetailsBox.AppendText("  Geschwindigkeit: $($adapter.Speed)`n`n")
+        $text = @"
+========================================
+NETZWERK-KONFIGURATION
+========================================
+
+$($data.NetworkInfo)
+
+========================================
+PORT-STATUS
+========================================
+
+$($data.PortStatus)
+
+========================================
+FIREWALL-STATUS
+========================================
+
+$($data.FirewallStatus)
+"@
+        $this.NetworkTextBox.Text = $text
+        $this.LogMessage("Netzwerk-Tab aktualisiert")
+    }
+
+    [void]UpdateStatus([string]$component, [string]$status, [string]$color) {
+        switch ($component) {
+            "System" {
+                $this.SystemStatusLabel.Text = $status
+                $this.SystemStatusLabel.ForeColor = [System.Drawing.Color]::FromName($color)
+            }
+            "Network" {
+                $this.NetworkStatusLabel.Text = $status
+                $this.NetworkStatusLabel.ForeColor = [System.Drawing.Color]::FromName($color)
+            }
+            "Compliance" {
+                $this.ComplianceStatusLabel.Text = $status
+                $this.ComplianceStatusLabel.ForeColor = [System.Drawing.Color]::FromName($color)
             }
         }
-        
-        if ($data -and $data.Ports) {
-            $this.NetworkDetailsBox.AppendText("`n=== PORT-STATUS ===`n")
-            foreach ($port in $data.Ports) {
-                $status = if ($port.Open) { "OFFEN" } else { "GESCHLOSSEN" }
-                $this.NetworkDetailsBox.AppendText("Port $($port.Port) ($($port.Service)): $status`n")
-            }
-        }
-    }
-    
-    [void]UpdateCardStatus([GroupBox]$card, [string]$newStatus, [Color]$color) {
-        $cardStatusLabel = $card.Controls | Where-Object { $_.Name -eq "StatusLabel" }
-        if ($cardStatusLabel) {
-            $cardStatusLabel.Text = $newStatus
-            $cardStatusLabel.ForeColor = $color
-            $card.Refresh()
-        }
-    }
-    
-    [void]AddLog([string]$message, [Color]$color) {
-        $timestamp = Get-Date -Format "HH:mm:ss"
-        $this.LogBox.SelectionStart = $this.LogBox.TextLength
-        $this.LogBox.SelectionLength = 0
-        $this.LogBox.SelectionColor = [Color]::Gray
-        $this.LogBox.AppendText("[$timestamp] ")
-        $this.LogBox.SelectionColor = $color
-        $this.LogBox.AppendText("$message`n")
-        $this.LogBox.ScrollToCaret()
         $this.Form.Refresh()
     }
-    
+
+    [void]LogMessage([string]$message) {
+        $timestamp = Get-Date -Format "HH:mm:ss"
+        $this.LogTextBox.AppendText("[$timestamp] $message`n")
+        $this.LogTextBox.ScrollToCaret()
+    }
+
+    [void]SetProgress([int]$value) {
+        if ($value -eq 0) {
+            $this.ProgressBar.Visible = $false
+        } else {
+            $this.ProgressBar.Visible = $true
+            $this.ProgressBar.Value = $value
+        }
+        $this.Form.Refresh()
+    }
+
+    [void]SetStatus([string]$text) {
+        $this.StatusLabel.Text = $text
+        $this.Form.Refresh()
+    }
+
     [void]ExportReport() {
-        try {
-            $saveDialog = New-Object SaveFileDialog
-            $saveDialog.Filter = "HTML Datei (*.html)|*.html"
-            $saveDialog.FileName = "Sage100-ServerCheck-Report-$(Get-Date -Format 'yyyyMMdd-HHmmss').html"
-            
-            if ($saveDialog.ShowDialog() -eq "OK") {
-                if (Get-Command -Name "Export-HtmlReport" -ErrorAction SilentlyContinue) {
-                    Export-HtmlReport -OutputPath $saveDialog.FileName
-                    [MessageBox]::Show("Report erfolgreich exportiert nach:`n$($saveDialog.FileName)", "Export erfolgreich")
-                } else {
-                    [MessageBox]::Show("Export-Funktion nicht verfuegbar", "Fehler")
-                }
-            }
-        } catch {
-            [MessageBox]::Show("Fehler beim Export: $($_.Exception.Message)", "Fehler")
+        $saveDialog = New-Object System.Windows.Forms.SaveFileDialog
+        $saveDialog.Filter = "HTML Dateien (*.html)|*.html|Text Dateien (*.txt)|*.txt"
+        $saveDialog.FileName = "Sage100_ServerCheck_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        
+        if ($saveDialog.ShowDialog() -eq "OK") {
+            $this.LogMessage("Exportiere Bericht nach: $($saveDialog.FileName)")
+            # Export-Logik hier implementieren
         }
     }
-    
+
+    [void]ShowAbout() {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Sage 100 Server Check & Setup Tool`nVersion 2.0`n`nEntwickelt fuer die Pruefung von Sage 100 Serverumgebungen",
+            "Über",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        )
+    }
+
     [void]Show() {
-        [void]$this.Form.ShowDialog()
+        $this.Form.ShowDialog()
     }
 }
