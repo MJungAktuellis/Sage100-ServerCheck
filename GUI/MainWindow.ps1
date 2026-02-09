@@ -4,9 +4,9 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# ===================================
+# =================================
 # GUI-Klasse Definition
-# ===================================
+# =================================
 class MainWindow {
     [System.Windows.Forms.Form]$Form
     [System.Windows.Forms.TabControl]$TabControl
@@ -224,7 +224,7 @@ class MainWindow {
         $textBox.Multiline = $true
         $textBox.ScrollBars = "Vertical"
         $textBox.Dock = "Fill"
-        $textBox.Font = New-Object System.Windows.Forms.Font("Consolas", 9)
+        $textBox.Font = New-Object System.Drawing.Font("Consolas", 9)
         $textBox.ReadOnly = $true
         $textBox.Name = "NetworkInfoBox"
         $tab.Controls.Add($textBox)
@@ -297,7 +297,7 @@ class MainWindow {
             $this.ProgressBar.Value = 40
             $this.Form.Refresh()
             
-            # Netzwerk-Check
+            # Network-Check
             $this.StatusLabel.Text = "Pruefe Netzwerk..."
             $networkInfo = Test-NetworkConfiguration
             $this.CheckResults["Network"] = $networkInfo
