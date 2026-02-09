@@ -1,12 +1,12 @@
 # GUI/MainWindow.ps1
-# Hauptfenster-Klasse für Sage 100 Server Check Tool
+# Hauptfenster-Klasse fuer Sage 100 Server Check Tool
 
 using namespace System.Windows.Forms
 using namespace System.Drawing
 
 <#
 .SYNOPSIS
-    Hauptfenster-Klasse für die GUI-Anwendung
+    Hauptfenster-Klasse fuer die GUI-Anwendung
 .DESCRIPTION
     Erstellt und verwaltet das Hauptfenster mit allen UI-Elementen
 #>
@@ -16,7 +16,7 @@ class MainWindow {
     [System.Windows.Forms.TabControl]$TabControl
     [System.Windows.Forms.Button]$StartButton
     
-    # TextBoxen als Klasseneigenschaften für direkten Zugriff
+    # TextBoxen als Klasseneigenschaften fuer direkten Zugriff
     [System.Windows.Forms.TextBox]$SystemInfoBox
     [System.Windows.Forms.TextBox]$NetworkInfoBox
     [System.Windows.Forms.TextBox]$ComplianceInfoBox
@@ -47,7 +47,7 @@ class MainWindow {
         $headerPanel.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
         $this.Form.Controls.Add($headerPanel)
 
-        # Titel
+        # Title
         $titleLabel = New-Object System.Windows.Forms.Label
         $titleLabel.Text = "Sage 100 Server Check & Setup Tool"
         $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
@@ -135,7 +135,7 @@ class MainWindow {
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
-        # TextBox für System-Informationen
+        # TextBox fuer System-Informationen
         $this.SystemInfoBox = New-Object System.Windows.Forms.TextBox
         $this.SystemInfoBox.Multiline = $true
         $this.SystemInfoBox.ScrollBars = "Vertical"
@@ -152,7 +152,7 @@ class MainWindow {
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
-        # TextBox für Netzwerk-Informationen
+        # TextBox fuer Netzwerk-Informationen
         $this.NetworkInfoBox = New-Object System.Windows.Forms.TextBox
         $this.NetworkInfoBox.Multiline = $true
         $this.NetworkInfoBox.ScrollBars = "Vertical"
@@ -169,7 +169,7 @@ class MainWindow {
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
-        # TextBox für Compliance-Informationen
+        # TextBox fuer Compliance-Informationen
         $this.ComplianceInfoBox = New-Object System.Windows.Forms.TextBox
         $this.ComplianceInfoBox.Multiline = $true
         $this.ComplianceInfoBox.ScrollBars = "Vertical"
@@ -186,7 +186,7 @@ class MainWindow {
         $tab.BackColor = [System.Drawing.Color]::White
         $this.TabControl.TabPages.Add($tab)
 
-        # TextBox für Logs
+        # TextBox fuer Logs
         $this.LogsBox = New-Object System.Windows.Forms.TextBox
         $this.LogsBox.Multiline = $true
         $this.LogsBox.ScrollBars = "Vertical"
@@ -249,7 +249,7 @@ class MainWindow {
         }
     }
 
-    # Vollständige Prüfung starten
+    # Vollstaendige Pruefung starten
     [void] RunFullCheck() {
         try {
             $this.ResultBox.Clear()
@@ -259,14 +259,14 @@ class MainWindow {
             $this.ResultBox.AppendText("1. System-Check...`r`n")
             $this.UpdateStatusCard("SystemStatusCard", "Wird geprueft...", "Yellow")
             
-            if (Get-Command -Name "Get-SystemInfo" -ErrorAction SilentlyContinue) {
-                $systemInfo = Get-SystemInfo
+            if (Get-Command -Name "Get-SystemInformation" -ErrorAction SilentlyContinue) {
+                $systemInfo = Get-SystemInformation
                 $this.CheckResults["System"] = $systemInfo
                 $this.UpdateSystemTab($systemInfo)
                 $this.UpdateStatusCard("SystemStatusCard", "Erfolgreich geprueft", "Green")
                 $this.ResultBox.AppendText("   [OK] System-Check abgeschlossen`r`n")
             } else {
-                throw "Funktion 'Get-SystemInfo' nicht gefunden! Module wurden nicht korrekt geladen."
+                throw "Funktion 'Get-SystemInformation' nicht gefunden! Module wurden nicht korrekt geladen."
             }
             
             # 2. Netzwerk-Check
