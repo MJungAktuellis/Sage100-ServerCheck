@@ -4,9 +4,9 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# =======================================
+# ===================================
 # GUI-Klasse Definition
-# =======================================
+# ===================================
 class MainWindow {
     [System.Windows.Forms.Form]$Form
     [System.Windows.Forms.TabControl]$TabControl
@@ -289,30 +289,45 @@ class MainWindow {
             $this.ProgressBar.Value = 10
             $this.Form.Refresh()
             
-            $systemInfo = Get-SystemInfo
-            $this.CheckResults["System"] = $systemInfo
-            $this.UpdateSystemTab($systemInfo)
-            $this.UpdateStatusCard("SystemStatusCard", "Erfolgreich geprueft", "Green")
+            # FEHLERBEHANDLUNG: Prüfe ob Funktion existiert
+            if (Get-Command -Name "Get-SystemInfo" -ErrorAction SilentlyContinue) {
+                $systemInfo = Get-SystemInfo
+                $this.CheckResults["System"] = $systemInfo
+                $this.UpdateSystemTab($systemInfo)
+                $this.UpdateStatusCard("SystemStatusCard", "Erfolgreich geprueft", "Green")
+            } else {
+                throw "Funktion 'Get-SystemInfo' nicht gefunden! Module wurden nicht korrekt geladen."
+            }
             
             $this.ProgressBar.Value = 40
             $this.Form.Refresh()
             
             # Network-Check
             $this.StatusLabel.Text = "Pruefe Netzwerk..."
-            $networkInfo = Test-NetworkConfiguration
-            $this.CheckResults["Network"] = $networkInfo
-            $this.UpdateNetworkTab($networkInfo)
-            $this.UpdateStatusCard("NetworkStatusCard", "Erfolgreich geprueft", "Green")
+            
+            if (Get-Command -Name "Test-NetworkConfiguration" -ErrorAction SilentlyContinue) {
+                $networkInfo = Test-NetworkConfiguration
+                $this.CheckResults["Network"] = $networkInfo
+                $this.UpdateNetworkTab($networkInfo)
+                $this.UpdateStatusCard("NetworkStatusCard", "Erfolgreich geprueft", "Green")
+            } else {
+                throw "Funktion 'Test-NetworkConfiguration' nicht gefunden!"
+            }
             
             $this.ProgressBar.Value = 70
             $this.Form.Refresh()
             
             # Compliance-Check
             $this.StatusLabel.Text = "Pruefe Compliance..."
-            $complianceInfo = Test-Sage100Compliance
-            $this.CheckResults["Compliance"] = $complianceInfo
-            $this.UpdateComplianceTab($complianceInfo)
-            $this.UpdateStatusCard("ComplianceStatusCard", "Erfolgreich geprueft", "Green")
+            
+            if (Get-Command -Name "Test-Sage100Compliance" -ErrorAction SilentlyContinue) {
+                $complianceInfo = Test-Sage100Compliance
+                $this.CheckResults["Compliance"] = $complianceInfo
+                $this.UpdateComplianceTab($complianceInfo)
+                $this.UpdateStatusCard("ComplianceStatusCard", "Erfolgreich geprueft", "Green")
+            } else {
+                throw "Funktion 'Test-Sage100Compliance' nicht gefunden!"
+            }
             
             $this.ProgressBar.Value = 100
             $this.StatusLabel.Text = "Pruefung abgeschlossen"
@@ -326,12 +341,26 @@ class MainWindow {
             
         } catch {
             $this.StatusLabel.Text = "Fehler bei der Pruefung"
+            
+            # Detaillierte Fehlermeldung
+            $errorMsg = "Fehler: $($_.Exception.Message)`r`n`r`n"
+            $errorMsg += "Position: $($_.InvocationInfo.PositionMessage)`r`n`r`n"
+            $errorMsg += "Stack Trace: $($_.ScriptStackTrace)"
+            
             [System.Windows.Forms.MessageBox]::Show(
-                "Fehler: $($_.Exception.Message)",
+                $errorMsg,
                 "Fehler",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
             )
+            
+            # Fehler auch in Logs-Tab schreiben
+            $logsTab = $this.TabControl.TabPages[4]
+            $logsBox = $logsTab.Controls["LogsBox"]
+            if ($logsBox) {
+                $logsBox.AppendText("=== FEHLER ===`r`n")
+                $logsBox.AppendText("$errorMsg`r`n`r`n")
+            }
         }
     }
     
