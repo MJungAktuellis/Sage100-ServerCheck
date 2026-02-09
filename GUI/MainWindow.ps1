@@ -26,19 +26,19 @@ class MainWindow {
         
         $exportMarkdown = New-Object System.Windows.Forms.ToolStripMenuItem
         $exportMarkdown.Text = "Export Markdown-Report"
-        $exportMarkdown.Add_Click({ $this.ExportMarkdown() })
+        $exportMarkdown.Add_Click({ $this.ExportMarkdown() }.GetNewClosure())
         
         $exportJson = New-Object System.Windows.Forms.ToolStripMenuItem
         $exportJson.Text = "Export JSON-Snapshot"
-        $exportJson.Add_Click({ $this.ExportJSON() })
+        $exportJson.Add_Click({ $this.ExportJSON() }.GetNewClosure())
         
         $exportLog = New-Object System.Windows.Forms.ToolStripMenuItem
         $exportLog.Text = "Export Debug-Log"
-        $exportLog.Add_Click({ $this.ExportDebugLog() })
+        $exportLog.Add_Click({ $this.ExportDebugLog() }.GetNewClosure())
         
         $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem
         $exitItem.Text = "Beenden"
-        $exitItem.Add_Click({ $this.MainForm.Close() })
+        $exitItem.Add_Click({ $this.MainForm.Close() }.GetNewClosure())
         
         $fileMenu.DropDownItems.AddRange(@($exportMarkdown, $exportJson, $exportLog, 
             (New-Object System.Windows.Forms.ToolStripSeparator), $exitItem))
@@ -49,19 +49,19 @@ class MainWindow {
         
         $fullCheck = New-Object System.Windows.Forms.ToolStripMenuItem
         $fullCheck.Text = "Vollstaendige Pruefung"
-        $fullCheck.Add_Click({ $this.RunFullCheck() })
+        $fullCheck.Add_Click({ $this.RunFullCheck() }.GetNewClosure())
         
         $systemCheck = New-Object System.Windows.Forms.ToolStripMenuItem
         $systemCheck.Text = "Nur System-Check"
-        $systemCheck.Add_Click({ $this.RunSystemCheck() })
+        $systemCheck.Add_Click({ $this.RunSystemCheck() }.GetNewClosure())
         
         $networkCheck = New-Object System.Windows.Forms.ToolStripMenuItem
         $networkCheck.Text = "Nur Netzwerk-Check"
-        $networkCheck.Add_Click({ $this.RunNetworkCheck() })
+        $networkCheck.Add_Click({ $this.RunNetworkCheck() }.GetNewClosure())
         
         $complianceCheck = New-Object System.Windows.Forms.ToolStripMenuItem
         $complianceCheck.Text = "Nur Compliance-Check"
-        $complianceCheck.Add_Click({ $this.RunComplianceCheck() })
+        $complianceCheck.Add_Click({ $this.RunComplianceCheck() }.GetNewClosure())
         
         $actionsMenu.DropDownItems.AddRange(@($fullCheck, (New-Object System.Windows.Forms.ToolStripSeparator),
             $systemCheck, $networkCheck, $complianceCheck))
@@ -72,7 +72,7 @@ class MainWindow {
         
         $aboutItem = New-Object System.Windows.Forms.ToolStripMenuItem
         $aboutItem.Text = "Ueber"
-        $aboutItem.Add_Click({ $this.ShowAbout() })
+        $aboutItem.Add_Click({ $this.ShowAbout() }.GetNewClosure())
         
         $helpMenu.DropDownItems.Add($aboutItem)
         
@@ -126,7 +126,7 @@ class MainWindow {
         $checkButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
         $checkButton.ForeColor = [System.Drawing.Color]::White
         $checkButton.FlatStyle = "Flat"
-        $checkButton.Add_Click({ $this.RunFullCheck() })
+        $checkButton.Add_Click({ $this.RunFullCheck() }.GetNewClosure())
         $dashboardTab.Controls.Add($checkButton)
         
         # Result TextBox
