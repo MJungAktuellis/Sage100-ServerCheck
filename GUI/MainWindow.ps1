@@ -40,37 +40,42 @@ class MainWindow {
         $this.Form.StartPosition = "CenterScreen"
         $this.Form.BackColor = [System.Drawing.Color]::FromArgb(240, 240, 245)
 
-        # Header Panel
+        # Container Panel fuer gesamten Inhalt
+        $mainContainer = New-Object System.Windows.Forms.Panel
+        $mainContainer.Dock = "Fill"
+        $this.Form.Controls.Add($mainContainer)
+
+        # Header Panel - REDUZIERT auf 60px Hoehe
         $headerPanel = New-Object System.Windows.Forms.Panel
         $headerPanel.Dock = "Top"
-        $headerPanel.Height = 80
+        $headerPanel.Height = 60
         $headerPanel.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
-        $this.Form.Controls.Add($headerPanel)
+        $mainContainer.Controls.Add($headerPanel)
 
         # Title
         $titleLabel = New-Object System.Windows.Forms.Label
         $titleLabel.Text = "Sage 100 Server Check & Setup Tool"
-        $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
+        $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
         $titleLabel.ForeColor = [System.Drawing.Color]::White
-        $titleLabel.Location = New-Object System.Drawing.Point(20, 15)
+        $titleLabel.Location = New-Object System.Drawing.Point(15, 10)
         $titleLabel.AutoSize = $true
         $headerPanel.Controls.Add($titleLabel)
 
         # Untertitel
         $subtitleLabel = New-Object System.Windows.Forms.Label
         $subtitleLabel.Text = "Automatische Systempruefung und Compliance-Check"
-        $subtitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+        $subtitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
         $subtitleLabel.ForeColor = [System.Drawing.Color]::White
-        $subtitleLabel.Location = New-Object System.Drawing.Point(20, 48)
+        $subtitleLabel.Location = New-Object System.Drawing.Point(15, 35)
         $subtitleLabel.AutoSize = $true
         $headerPanel.Controls.Add($subtitleLabel)
 
-        # Start Button
+        # Start Button - KOMPAKT
         $this.StartButton = New-Object System.Windows.Forms.Button
         $this.StartButton.Text = "> Vollstaendige Pruefung starten"
-        $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
-        $this.StartButton.Size = New-Object System.Drawing.Size(280, 50)
-        $this.StartButton.Location = New-Object System.Drawing.Point(890, 15)
+        $this.StartButton.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+        $this.StartButton.Size = New-Object System.Drawing.Size(270, 40)
+        $this.StartButton.Location = New-Object System.Drawing.Point(900, 10)
         $this.StartButton.BackColor = [System.Drawing.Color]::FromArgb(0, 200, 0)
         $this.StartButton.ForeColor = [System.Drawing.Color]::White
         $this.StartButton.FlatStyle = "Flat"
@@ -84,7 +89,7 @@ class MainWindow {
         $this.TabControl = New-Object System.Windows.Forms.TabControl
         $this.TabControl.Dock = "Fill"
         $this.TabControl.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-        $this.Form.Controls.Add($this.TabControl)
+        $mainContainer.Controls.Add($this.TabControl)
 
         # Tabs erstellen
         $this.CreateOverviewTab()
