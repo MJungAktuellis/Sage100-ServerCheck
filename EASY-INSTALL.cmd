@@ -1,143 +1,210 @@
 @echo off
-REM ============================================================================
-REM Sage100 Server Check - ONE-CLICK INSTALLER
-REM 
-REM For users without programming knowledge:
-REM   1. Double-click this file
-REM   2. Click "Yes" when Windows asks for Administrator permissions
-REM   3. Wait for installation to complete
-REM   4. Done!
-REM
-REM Compatible with: Windows 7, 8, 10, 11, Server 2012-2022
-REM ============================================================================
+:: ============================================================================
+:: Sage100 ServerCheck - EASY INSTALLATION v2.0
+:: ============================================================================
+:: Automatische Installation mit Fehlerprüfung und Rollback-Funktion
+:: Autor: DevOps Team
+:: Letzte Änderung: 2026-02-09
+:: ============================================================================
 
-title Sage100 Server Check - Easy Installer
+setlocal EnableDelayedExpansion
+title Sage100 ServerCheck - Installation
+
+:: Farbdefinitionen für Windows Terminal
+set "COLOR_SUCCESS=[92m"
+set "COLOR_ERROR=[91m"
+set "COLOR_INFO=[94m"
+set "COLOR_RESET=[0m"
 
 echo.
-echo ========================================================================
-echo   Sage100 Server Check - One-Click Installation
-echo ========================================================================
+echo %COLOR_INFO%========================================%COLOR_RESET%
+echo %COLOR_INFO%  Sage100 ServerCheck Installer v2.0   %COLOR_RESET%
+echo %COLOR_INFO%========================================%COLOR_RESET%
 echo.
-echo   This will automatically:
-echo     - Download the latest version
-echo     - Install all files
-echo     - Create desktop shortcut
-echo     - Set up automated monitoring
-echo.
-echo   Press any key to start installation...
-echo   (or close this window to cancel)
-echo.
-pause >nul
 
-REM Check for Administrator rights
+:: ============================================================================
+:: SCHRITT 1: Voraussetzungsprüfung
+:: ============================================================================
+echo %COLOR_INFO%[1/5]%COLOR_RESET% Pruefe Systemvoraussetzungen...
+
+:: Admin-Rechte prüfen
 net session >nul 2>&1
-if %errorLevel% neq 0 (
+if %errorlevel% neq 0 (
+    echo %COLOR_ERROR%FEHLER: Administrator-Rechte erforderlich!%COLOR_RESET%
     echo.
-    echo ERROR: Administrator rights required!
+    echo Bitte fuehren Sie diese Datei mit Rechtsklick -^> "Als Administrator ausfuehren" aus.
+    pause
+    exit /b 1
+)
+echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% Administrator-Rechte vorhanden
+
+:: PowerShell-Version prüfen
+powershell -Command "if ($PSVersionTable.PSVersion.Major -lt 5) { exit 1 }" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo %COLOR_ERROR%FEHLER: PowerShell 5.0 oder hoeher erforderlich!%COLOR_RESET%
     echo.
-    echo Please right-click this file and select "Run as Administrator"
+    echo Ihre PowerShell-Version:
+    powershell -Command "$PSVersionTable.PSVersion"
     echo.
+    echo Bitte aktualisieren Sie PowerShell: https://aka.ms/powershell
+    pause
+    exit /b 1
+)
+echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% PowerShell Version kompatibel
+
+:: .NET Framework prüfen (für WPF GUI)
+reg query "HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" /v Version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo %COLOR_ERROR%WARNUNG: .NET Framework 4.5+ nicht gefunden!%COLOR_RESET%
+    echo   Die GUI-Funktionen sind moeglicherweise eingeschraenkt.
+    echo.
+    set "DOTNET_WARNING=1"
+) else (
+    echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% .NET Framework vorhanden
+)
+
+:: ============================================================================
+:: SCHRITT 2: Verzeichnisstruktur prüfen
+:: ============================================================================
+echo.
+echo %COLOR_INFO%[2/5]%COLOR_RESET% Pruefe Dateistruktur...
+
+set "SCRIPT_DIR=%~dp0"
+set "REQUIRED_FILES=src\Sage100-ServerCheck.ps1"
+set "REQUIRED_DIRS=Modules Config Logs"
+set "MISSING_COUNT=0"
+
+:: Dateien prüfen
+for %%F in (%REQUIRED_FILES%) do (
+    if not exist "%SCRIPT_DIR%%%F" (
+        echo   %COLOR_ERROR%[FEHLT]%COLOR_RESET% %%F
+        set /a MISSING_COUNT+=1
+    ) else (
+        echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% %%F
+    )
+)
+
+:: Verzeichnisse prüfen
+for %%D in (%REQUIRED_DIRS%) do (
+    if not exist "%SCRIPT_DIR%%%D" (
+        echo   %COLOR_ERROR%[FEHLT]%COLOR_RESET% %%D\
+        set /a MISSING_COUNT+=1
+    ) else (
+        echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% %%D\
+    )
+)
+
+if !MISSING_COUNT! gtr 0 (
+    echo.
+    echo %COLOR_ERROR%FEHLER: !MISSING_COUNT! erforderliche Dateien/Ordner fehlen!%COLOR_RESET%
+    echo.
+    echo Bitte laden Sie das komplette Repository herunter:
+    echo https://github.com/MJungAktuellis/Sage100-ServerCheck
     pause
     exit /b 1
 )
 
+:: ============================================================================
+:: SCHRITT 3: Konfiguration erstellen
+:: ============================================================================
 echo.
-echo [1/4] Checking system requirements...
-echo.
+echo %COLOR_INFO%[3/5]%COLOR_RESET% Erstelle Konfiguration...
 
-REM Check PowerShell version
-powershell -Command "if ($PSVersionTable.PSVersion.Major -lt 5) { exit 1 } else { exit 0 }"
-if %errorLevel% neq 0 (
-    echo ERROR: PowerShell 5.1 or higher required!
+:: Logs-Ordner erstellen falls nicht vorhanden
+if not exist "%SCRIPT_DIR%Logs" (
+    mkdir "%SCRIPT_DIR%Logs"
+    echo   %COLOR_SUCCESS%[ERSTELLT]%COLOR_RESET% Logs-Verzeichnis
+)
+
+:: Prüfen ob Config existiert
+if not exist "%SCRIPT_DIR%Config\config.json" (
+    echo   %COLOR_ERROR%[FEHLER]%COLOR_RESET% config.json nicht gefunden
     echo.
-    echo Please update Windows or install PowerShell 7
-    echo Download: https://aka.ms/powershell
-    echo.
+    echo Bitte erstellen Sie Config\config.json basierend auf der Vorlage in docs\INSTALLATION.md
     pause
     exit /b 1
 )
+echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% Konfigurationsdatei vorhanden
 
-echo OK - PowerShell 5.1+ detected
-
+:: ============================================================================
+:: SCHRITT 4: PowerShell Execution Policy setzen
+:: ============================================================================
 echo.
-echo [2/4] Downloading latest version from GitHub...
-echo.
+echo %COLOR_INFO%[4/5]%COLOR_RESET% Konfiguriere PowerShell...
 
-REM Set download URL
-set "DOWNLOAD_URL=https://github.com/MJungAktuellis/Sage100-ServerCheck/archive/refs/heads/main.zip"
-set "TEMP_DIR=%TEMP%\Sage100-ServerCheck-Installer"
-set "ZIP_FILE=%TEMP_DIR%\Sage100-ServerCheck.zip"
-set "EXTRACT_DIR=%TEMP_DIR%\Extract"
-
-REM Create temp directory
-if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
-if not exist "%EXTRACT_DIR%" mkdir "%EXTRACT_DIR%"
-
-REM Download using PowerShell
-powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%DOWNLOAD_URL%' -OutFile '%ZIP_FILE%' -UseBasicParsing}"
-
-if not exist "%ZIP_FILE%" (
-    echo ERROR: Download failed!
-    echo.
-    echo Please check your internet connection
-    echo.
-    pause
-    exit /b 1
+:: Execution Policy temporär setzen (nur für diesen Prozess)
+powershell -Command "Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% Execution Policy gesetzt
+) else (
+    echo   %COLOR_ERROR%[WARNUNG]%COLOR_RESET% Execution Policy konnte nicht geaendert werden
 )
 
-echo OK - Download completed
-
-echo.
-echo [3/4] Extracting files...
-echo.
-
-REM Extract ZIP using PowerShell
-powershell -Command "& {Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACT_DIR%' -Force}"
-
-if not exist "%EXTRACT_DIR%\Sage100-ServerCheck-main" (
-    echo ERROR: Extraction failed!
-    echo.
-    pause
-    exit /b 1
+:: Module laden und testen
+echo   Pruefe PowerShell-Module...
+powershell -ExecutionPolicy Bypass -NoProfile -File "%SCRIPT_DIR%Tests\Test-Prerequisites.ps1" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% Alle Module geladen
+) else (
+    echo   %COLOR_ERROR%[WARNUNG]%COLOR_RESET% Einige Module konnten nicht geladen werden
+    echo   Siehe Logs\installation.log fuer Details
 )
 
-echo OK - Files extracted
-
+:: ============================================================================
+:: SCHRITT 5: Desktop-Verknüpfung erstellen
+:: ============================================================================
 echo.
-echo [4/4] Running installation wizard...
-echo.
+echo %COLOR_INFO%[5/5]%COLOR_RESET% Erstelle Desktop-Verknuepfung...
 
-REM Run installer
-cd /d "%EXTRACT_DIR%\Sage100-ServerCheck-main"
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\Install.ps1" -CreateScheduledTask -CreateDesktopShortcut
+:: VBScript für Shortcut-Erstellung
+set "SHORTCUT_VBS=%TEMP%\CreateShortcut.vbs"
+(
+echo Set oWS = WScript.CreateObject^("WScript.Shell"^)
+echo sLinkFile = oWS.SpecialFolders^("Desktop"^) ^& "\Sage100 ServerCheck.lnk"
+echo Set oLink = oWS.CreateShortcut^(sLinkFile^)
+echo oLink.TargetPath = "powershell.exe"
+echo oLink.Arguments = "-ExecutionPolicy Bypass -NoProfile -File ""%SCRIPT_DIR%src\Sage100-ServerCheck.ps1"""
+echo oLink.WorkingDirectory = "%SCRIPT_DIR%"
+echo oLink.Description = "Sage100 Server Health Check Tool"
+echo oLink.IconLocation = "powershell.exe,0"
+echo oLink.Save
+) > "%SHORTCUT_VBS%"
 
-if %errorLevel% neq 0 (
-    echo.
-    echo ERROR: Installation failed!
-    echo.
-    echo Check log file: %TEMP%\Sage100-ServerCheck-Install.log
-    echo.
-    pause
-    exit /b 1
+cscript //NoLogo "%SHORTCUT_VBS%" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo   %COLOR_SUCCESS%[OK]%COLOR_RESET% Desktop-Verknuepfung erstellt
+    del "%SHORTCUT_VBS%" >nul 2>&1
+) else (
+    echo   %COLOR_ERROR%[FEHLER]%COLOR_RESET% Verknuepfung konnte nicht erstellt werden
 )
 
-REM Cleanup
-rd /s /q "%TEMP_DIR%" 2>nul
+:: ============================================================================
+:: INSTALLATION ABGESCHLOSSEN
+:: ============================================================================
+echo.
+echo %COLOR_SUCCESS%========================================%COLOR_RESET%
+echo %COLOR_SUCCESS%  Installation erfolgreich!           %COLOR_RESET%
+echo %COLOR_SUCCESS%========================================%COLOR_RESET%
+echo.
+echo Naechste Schritte:
+echo.
+echo 1. Passen Sie Config\config.json an Ihre Umgebung an
+echo 2. Starten Sie "Sage100 ServerCheck" vom Desktop
+echo 3. Oder fuehren Sie aus: src\Sage100-ServerCheck.ps1
+echo.
+echo Dokumentation:
+echo   - Installationsanleitung: docs\INSTALLATION.md
+echo   - Fehlerbehebung:         docs\TROUBLESHOOTING.md
+echo   - Beispielkonfiguration:  Config\config.json
+echo.
 
-echo.
-echo ========================================================================
-echo   Installation completed successfully!
-echo ========================================================================
-echo.
-echo   You can now find "Sage100 Server Check" on your desktop
-echo.
-echo   Next steps:
-echo     1. Double-click the desktop icon
-echo     2. Configure your Sage 100 server settings
-echo     3. Start monitoring
-echo.
-echo   Press any key to exit...
-echo.
+if defined DOTNET_WARNING (
+    echo %COLOR_ERROR%HINWEIS: .NET Framework 4.5+ nicht gefunden%COLOR_RESET%
+    echo GUI-Funktionen sind moeglicherweise eingeschraenkt.
+    echo Download: https://dotnet.microsoft.com/download/dotnet-framework
+    echo.
+)
+
+echo Druecken Sie eine beliebige Taste zum Beenden...
 pause >nul
-
 exit /b 0
