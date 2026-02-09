@@ -8,7 +8,7 @@ class MainWindow {
     [Form]$Form
     [TabControl]$TabControl
     [Button]$StartButton
-    [ProgressBar]$ProgressBar
+    [ToolStripProgressBar]$ProgressBar
     [ToolStripStatusLabel]$StatusLabel
     
     # TextBoxen fuer alle Tabs
