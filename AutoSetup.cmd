@@ -1,35 +1,68 @@
 @echo off
+chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
-:: Debugging aktivieren - alle Ausgaben in Log-Datei
+:: === DEBUG LOGGING ===
 set "LOGFILE=%~dp0debug.log"
 echo === AUTOSETUP DEBUG LOG === > "%LOGFILE%"
 echo Start: %date% %time% >> "%LOGFILE%"
 echo Aktueller Ordner: %CD% >> "%LOGFILE%"
 echo Script-Pfad: %~dp0 >> "%LOGFILE%"
 
-title SAGE 100 SERVER CHECK - INSTALLATION
-
-:: Administrator-Check
+:: === ALTERNATIVE ADMIN-PRÜFUNG (funktioniert auf allen Windows-Versionen) ===
 echo Pruefe Admin-Rechte... >> "%LOGFILE%"
-net session >nul 2>&1
-if not %errorLevel% == 0 (
-    echo FEHLER: Keine Admin-Rechte >> "%LOGFILE%"
+
+:: Methode: Versuche in System32 zu schreiben
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+
+if %errorlevel% neq 0 (
+    echo [FEHLER] Admin-Pruefung fehlgeschlagen - ErrorLevel: %errorlevel% >> "%LOGFILE%"
     cls
     echo.
-    echo [FEHLER] Keine Administrator-Rechte!
+    echo ================================================
+    echo    SAGE 100 SERVER CHECK - INSTALLATION
+    echo ================================================
+    echo.
+    echo [FEHLER] Keine Administrator-Rechte
     echo.
     echo Bitte:
     echo 1. Rechtsklick auf AutoSetup.cmd
     echo 2. "Als Administrator ausfuehren" waehlen
     echo.
-    echo Details: %LOGFILE%
+    pause
+    exit /b 1
+)
+
+echo [OK] Administrator-Rechte vorhanden >> "%LOGFILE%"
+
+:: === INSTALLER SUCHEN ===
+echo Suche Installer... >> "%LOGFILE%"
+
+set "INSTALLER_PATH=%~dp0Installer\Simple-Installer.ps1"
+echo Installer-Pfad: %INSTALLER_PATH% >> "%LOGFILE%"
+
+if not exist "%INSTALLER_PATH%" (
+    echo [FEHLER] Installer nicht gefunden: %INSTALLER_PATH% >> "%LOGFILE%"
+    cls
+    echo.
+    echo ================================================
+    echo    SAGE 100 SERVER CHECK - INSTALLATION
+    echo ================================================
+    echo.
+    echo [FEHLER] Installer nicht gefunden
+    echo.
+    echo Erwartet: %INSTALLER_PATH%
+    echo.
+    echo Bitte komplettes Repository herunterladen:
+    echo https://github.com/MJungAktuellis/Sage100-ServerCheck/archive/refs/heads/main.zip
     echo.
     pause
     exit /b 1
 )
-echo Admin-Rechte OK >> "%LOGFILE%"
 
+echo [OK] Installer gefunden >> "%LOGFILE%"
+
+:: === POWERSHELL STARTEN ===
 cls
 echo.
 echo ================================================
@@ -39,54 +72,26 @@ echo.
 echo Starte Installer...
 echo.
 
-:: Prüfe ob Installer existiert
-echo Pruefe Installer-Dateien... >> "%LOGFILE%"
-echo Suche in: %~dp0Installer\Simple-Installer.ps1 >> "%LOGFILE%"
+echo Starte PowerShell... >> "%LOGFILE%"
+echo Befehl: PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALLER_PATH%" >> "%LOGFILE%"
 
-if not exist "%~dp0Installer\Simple-Installer.ps1" (
-    echo FEHLER: Installer nicht gefunden! >> "%LOGFILE%"
+PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALLER_PATH%"
+
+echo PowerShell beendet - ErrorLevel: %errorlevel% >> "%LOGFILE%"
+echo Ende: %date% %time% >> "%LOGFILE%"
+
+if %errorlevel% neq 0 (
     echo.
-    echo [FEHLER] Installer-Dateien nicht gefunden!
+    echo [FEHLER] Installation fehlgeschlagen (ErrorLevel: %errorlevel%)
     echo.
-    echo Erwartet: %~dp0Installer\Simple-Installer.ps1
-    echo Aktueller Ordner: %CD%
-    echo.
-    echo Details: %LOGFILE%
+    echo Details in: %LOGFILE%
     echo.
     pause
-    exit /b 1
-)
-echo Installer gefunden >> "%LOGFILE%"
-
-:: PowerShell-Version prüfen
-echo Pruefe PowerShell... >> "%LOGFILE%"
-powershell.exe -Command "$PSVersionTable.PSVersion" >> "%LOGFILE%" 2>&1
-
-:: Starte PowerShell-Installer
-echo Starte PowerShell-Installer... >> "%LOGFILE%"
-powershell.exe -ExecutionPolicy Bypass -NoProfile -File "%~dp0Installer\Simple-Installer.ps1" 2>> "%LOGFILE%"
-
-set EXITCODE=%errorLevel%
-echo PowerShell Exit-Code: %EXITCODE% >> "%LOGFILE%"
-
-if %EXITCODE% == 0 (
-    echo.
-    echo ================================================
-    echo   INSTALLATION ERFOLGREICH ABGESCHLOSSEN!
-    echo ================================================
-    echo.
-) else (
-    echo.
-    echo ================================================
-    echo   [FEHLER] Installation fehlgeschlagen!
-    echo ================================================
-    echo.
-    echo Exit-Code: %EXITCODE%
-    echo Details: %LOGFILE%
-    echo.
+    exit /b %errorlevel%
 )
 
 echo.
-echo Debug-Log gespeichert in: %LOGFILE%
+echo Installation abgeschlossen
 echo.
 pause
+exit /b 0
