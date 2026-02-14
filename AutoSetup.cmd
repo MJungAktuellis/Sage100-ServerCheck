@@ -1,18 +1,12 @@
 @echo off
-chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
-
-:: ============================================
-:: SAGE 100 SERVER CHECK - AUTO SETUP
-:: ============================================
 
 title SAGE 100 SERVER CHECK - INSTALLATION
 
-:: Administrator-Check
 net session >nul 2>&1
-if %errorLevel% neq 0 (
+if not %errorLevel% == 0 (
     echo.
-    echo [FEHLER] Keine Administrator-Rechte!
+    echo [FEHLER] Keine Administrator-Rechte
     echo.
     echo Bitte:
     echo 1. Rechtsklick auf AutoSetup.cmd
@@ -31,33 +25,29 @@ echo.
 echo Starte Installer...
 echo.
 
-:: Prüfe ob Installer-Ordner existiert
 if not exist "Installer\Simple-Installer.ps1" (
-    echo [FEHLER] Installer-Dateien nicht gefunden!
+    echo [FEHLER] Installer nicht gefunden!
     echo.
     echo Erwartet: Installer\Simple-Installer.ps1
-    echo Aktueller Ordner: %CD%
+    echo Aktuell: %CD%
     echo.
     pause
     exit /b 1
 )
 
-:: Starte PowerShell-Installer
 powershell.exe -ExecutionPolicy Bypass -NoProfile -File "Installer\Simple-Installer.ps1"
 
-if %errorLevel% equ 0 (
+if %errorLevel% == 0 (
     echo.
     echo ================================================
-    echo   INSTALLATION ERFOLGREICH ABGESCHLOSSEN!
+    echo   INSTALLATION ERFOLGREICH!
     echo ================================================
     echo.
 ) else (
     echo.
     echo ================================================
-    echo   [FEHLER] Installation fehlgeschlagen!
+    echo   INSTALLATION FEHLGESCHLAGEN
     echo ================================================
-    echo.
-    echo Details finden Sie in: %CD%\Logs\installer.log
     echo.
 )
 
